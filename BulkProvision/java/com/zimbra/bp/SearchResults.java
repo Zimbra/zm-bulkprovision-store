@@ -1,7 +1,7 @@
 /*
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra Collaboration Suite Server
- * Copyright (C) 2009, 2010 Zimbra, Inc.
+ * Copyright (C) 2009, 2010, 2011 VMware, Inc.
  * 
  * The contents of this file are subject to the Zimbra Public License
  * Version 1.3 ("License"); you may not use this file except in
@@ -14,33 +14,27 @@
  */
 package com.zimbra.bp;
 
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import au.com.bytecode.opencsv.CSVWriter;
-
-import com.zimbra.common.account.Key;
+import com.zimbra.cs.account.*;
+import com.zimbra.cs.service.account.ToXML;
+import com.zimbra.cs.service.admin.AdminAccessControl;
+import com.zimbra.cs.service.admin.GetDomain;
+import com.zimbra.cs.service.admin.GetCos;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.soap.AdminConstants;
 import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.cs.account.Account;
-import com.zimbra.cs.account.AccountServiceException;
-import com.zimbra.cs.account.Alias;
-import com.zimbra.cs.account.AuthToken;
-import com.zimbra.cs.account.CalendarResource;
-import com.zimbra.cs.account.Cos;
-import com.zimbra.cs.account.DistributionList;
-import com.zimbra.cs.account.Domain;
-import com.zimbra.cs.account.NamedEntry;
-import com.zimbra.cs.account.Provisioning;
-import com.zimbra.cs.account.SearchDirectoryOptions;
-import com.zimbra.cs.ldap.ZLdapFilterFactory.FilterId;
-import com.zimbra.cs.service.admin.AdminAccessControl;
+
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.IOException;
+import java.io.FileOutputStream;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * Created by IntelliJ IDEA.
@@ -125,17 +119,26 @@ public class SearchResults {
 
         Domain d = null;
         if (domain != null) {
-            d = prov.get(Key.DomainBy.name, domain);
+            d = prov.get(Provisioning.DomainBy.name, domain);
             if (d == null)
                 throw AccountServiceException.NO_SUCH_DOMAIN(domain);
         }
 
-        SearchDirectoryOptions options = new SearchDirectoryOptions();
+        int flags = 0;
+
+        if (types.indexOf("accounts") != -1) flags |= Provisioning.SA_ACCOUNT_FLAG;
+        if (types.indexOf("aliases") != -1) flags |= Provisioning.SA_ALIAS_FLAG;
+        if (types.indexOf("distributionlists") != -1) flags |= Provisioning.SA_DISTRIBUTION_LIST_FLAG;
+        if (types.indexOf("resources") != -1) flags |= Provisioning.SA_CALENDAR_RESOURCE_FLAG;
+        if (types.indexOf("domains") != -1) flags |= Provisioning.SA_DOMAIN_FLAG;
+//            if (types.indexOf("coses") != -1) flags |= Provisioning.SD_COS_FLAG;
+
+        Provisioning.SearchOptions options = new Provisioning.SearchOptions();
         options.setDomain(d);
-        options.setTypes(types);
+        options.setFlags(flags);
         //make sure all the results are returned
 //        options.setMaxResults(maxResults);
-        options.setFilterString(FilterId.ADMIN_SEARCH, query);
+        options.setQuery(query);
         options.setReturnAttrs(ACCOUNT_ATTRS);
 //            options.setSortAscending(sortAscending);
 //            options.setSortAttr(sortBy);
