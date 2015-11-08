@@ -55,6 +55,4 @@ public class ZimbraBulkProvisionExt implements ZimbraExtension {
         //need to add the service calls to the admin soap calls
         SoapServlet.addService("AdminServlet", new ZimbraBulkProvisionService());
     }
-               
-    
 }
