@@ -72,7 +72,7 @@ public class BulkIMAPDataImport extends AdminDocumentHandler {
         String sourceType = request.getElement(AdminExtConstants.A_sourceType).getTextTrim();
         String indexBatchSize = ZimbraBulkProvisionExt.DEFAULT_INDEX_BATCH_SIZE;
         boolean useAdminLogin = false;
-        if (sourceType.equalsIgnoreCase(AdminFileDownload.FILE_FORMAT_BULK_XML)) {
+        if (sourceType.equalsIgnoreCase(ZimbraBulkProvisionExt.FILE_FORMAT_BULK_XML)) {
             String aid = request.getElement(AdminExtConstants.E_attachmentID).getTextTrim();
             ZimbraLog.extensions.debug("Uploaded XML file id = " + aid);
             FileUploadServlet.Upload up = FileUploadServlet.fetchUpload(zsc.getAuthtokenAccountId(), aid, zsc.getAuthToken());
@@ -151,9 +151,9 @@ public class BulkIMAPDataImport extends AdminDocumentHandler {
         } else if (sourceType.equalsIgnoreCase(ZimbraBulkProvisionExt.FILE_FORMAT_ZIMBRA)) {
             IMAPAccounts = getZimbraAccounts(request, zsc);
         } else {
-        	throw ServiceException.INVALID_REQUEST(
-        			String.format("Invalid value of %s parameter: %s. Allowed values: %s, %s",
-        					AdminExtConstants.A_sourceType, sourceType, ZimbraBulkProvisionExt.FILE_FORMAT_ZIMBRA,AdminFileDownload.FILE_FORMAT_BULK_XML), null);
+            throw ServiceException.INVALID_REQUEST(
+                    String.format("Invalid value of %s parameter: %s. Allowed values: %s, %s",
+                            AdminExtConstants.A_sourceType, sourceType, ZimbraBulkProvisionExt.FILE_FORMAT_ZIMBRA, ZimbraBulkProvisionExt.FILE_FORMAT_BULK_XML), null);
         }
 
         /*

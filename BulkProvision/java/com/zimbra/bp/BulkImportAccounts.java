@@ -32,12 +32,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.CSVRecord;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.io.SAXReader;
-
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.zimbra.common.account.Key;
 import com.zimbra.common.account.Key.DomainBy;
@@ -73,7 +74,6 @@ import com.zimbra.cs.mailbox.Mailbox;
 import com.zimbra.cs.mailbox.MailboxManager;
 import com.zimbra.cs.service.FileUploadServlet;
 import com.zimbra.cs.service.admin.AdminDocumentHandler;
-import com.zimbra.cs.service.admin.AdminFileDownload;
 import com.zimbra.cs.service.admin.AdminService;
 import com.zimbra.soap.ZimbraSoapContext;
 import com.zimbra.soap.admin.type.DataSourceType;
@@ -89,7 +89,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
     @Override
     public Element handle(Element request, Map<String, Object> context) throws ServiceException {
         ZimbraSoapContext zsc = getZimbraSoapContext(context);
-        Map attrs = AdminService.getAttrs(request, true);
+        Map<String, Object> attrs = AdminService.getAttrs(request, true);
         String op = request.getAttribute(AdminExtConstants.A_op);
         Element response = zsc.createElement(AdminExtConstants.BULK_IMPORT_ACCOUNTS_RESPONSE);
         Provisioning prov = Provisioning.getInstance();
@@ -119,7 +119,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
             List<Map<String, Object>> sourceEntries = new ArrayList<Map<String, Object>>();
 
             String sourceType = request.getElement(AdminExtConstants.A_sourceType).getTextTrim();
-            if (sourceType.equalsIgnoreCase(AdminFileDownload.FILE_FORMAT_BULK_CSV)) {
+            if (sourceType.equalsIgnoreCase(ZimbraBulkProvisionExt.FILE_FORMAT_BULK_CSV)) {
                 String aid = request.getElement(AdminExtConstants.E_attachmentID).getTextTrim();
                 ZimbraLog.extensions.debug("Uploaded CSV file id = " + aid);
                 // response.addElement(E_attachmentID).addText(aid);
@@ -128,36 +128,27 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                     throw ServiceException.FAILURE("Uploaded CSV file with id " + aid + " was not found.", null);
                 }
                 InputStream in = null;
-                CSVReader reader = null;
+                CSVParser parser = null;
                 try {
                     in = up.getInputStream();
-                    reader = new CSVReader(new InputStreamReader(in));
-                    String[] nextLine;
-
-                    List<String[]> allEntries = reader.readAll();
-                    int totalNumberOfEntries = allEntries.size();
-
-                    checkAccountLimits(allEntries, zsc, prov);
-
-                    /**
-                     * Iterate through records obtained from CSV file and add
-                     * each record to sourceEntries
-                     */
-                    for (int i = 0; i < totalNumberOfEntries; i++) {
-                        nextLine = allEntries.get(i);
+                    parser = new CSVParser(new InputStreamReader(in), CSVFormat.DEFAULT);
+                    checkAccountLimits(parser.getRecords(), zsc, prov);
+                    int counter = -1;
+                    for (final CSVRecord record : parser) {
+                        counter++;
                         boolean isValidEntry = false;
                         try {
-                            isValidEntry = validEntry(nextLine, zsc);
+                            isValidEntry = validEntry(record, zsc);
                         } catch (ServiceException e) {
                             ZimbraLog.extensions.error(e);
                             throw e;
                         }
-
+                        
                         if (!isValidEntry) {
-                            throw ServiceException.INVALID_REQUEST(String.format("Entry %d is not valid (%s %s %s %s %s %s)", i,
-                                    nextLine[0], nextLine[1], nextLine[2], nextLine[3], nextLine[4], nextLine[5]), null);
+                            throw ServiceException.INVALID_REQUEST(String.format("Entry %d is not valid (%s %s %s %s %s %s)", counter,
+                                    record.get(0), record.get(1), record.get(2), record.get(3), record.get(4), record.get(5)), null);
                         }
-                        String userEmail = nextLine[0].trim();
+                        String userEmail = record.get(0).trim();
                         String parts[] = EmailUtil.getLocalPartAndDomain(userEmail);
                         if (parts == null) {
                             throw ServiceException.INVALID_REQUEST("must be valid email address: " + userEmail, null);
@@ -179,15 +170,15 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                             totalExistingAccounts++;
                         } else {
                             Map<String, Object> accAttrs = new HashMap<String, Object>();
-                            StringUtil.addToMultiMap(accAttrs, Provisioning.A_displayName, nextLine[1].trim());
-                            StringUtil.addToMultiMap(accAttrs, Provisioning.A_givenName, nextLine[2].trim());
-                            StringUtil.addToMultiMap(accAttrs, Provisioning.A_sn, nextLine[3].trim());
-                            StringUtil.addToMultiMap(accAttrs, Provisioning.A_zimbraPasswordMustChange, nextLine[5].trim());
+                            StringUtil.addToMultiMap(accAttrs, Provisioning.A_displayName, record.get(1).trim());
+                            StringUtil.addToMultiMap(accAttrs, Provisioning.A_givenName, record.get(2).trim());
+                            StringUtil.addToMultiMap(accAttrs, Provisioning.A_sn, record.get(3).trim());
+                            StringUtil.addToMultiMap(accAttrs, Provisioning.A_zimbraPasswordMustChange, record.get(5).trim());
 
                             checkSetAttrsOnCreate(zsc, TargetType.account, userEmail, accAttrs);
 
                             StringUtil.addToMultiMap(accAttrs, Provisioning.A_mail, userEmail);
-                            StringUtil.addToMultiMap(accAttrs, Provisioning.A_userPassword, nextLine[4].trim());
+                            StringUtil.addToMultiMap(accAttrs, Provisioning.A_userPassword, record.get(4).trim());
                             if (zimbraMailTransport.length() > 0) {
                                 StringUtil.addToMultiMap(accAttrs, Provisioning.A_zimbraMailTransport, zimbraMailTransport);
                             }
@@ -195,12 +186,16 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                         }
                         totalAccounts++;
                     }
-
-                    in.close();
-
                 } catch (IOException e) {
                     throw ServiceException.FAILURE("", e);
                 } finally {
+                    if(parser != null) {
+                        try {
+                            parser.close();
+                        } catch (IOException e) {
+                            ZimbraLog.extensions.error(e);
+                        }
+                    }
                     if (in != null) {
                         try {
                             in.close();
@@ -208,16 +203,8 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                             ZimbraLog.extensions.error(e);
                         }
                     }
-                    if (reader != null) {
-                        try {
-                            reader.close();
-                        } catch (IOException e) {
-                            ZimbraLog.extensions.error(e);
-                        }
-                    }
-
                 }
-            } else if (sourceType.equalsIgnoreCase(AdminFileDownload.FILE_FORMAT_BULK_XML)) {
+            } else if (sourceType.equalsIgnoreCase(ZimbraBulkProvisionExt.FILE_FORMAT_BULK_XML)) {
                 String aid = request.getElement(AdminExtConstants.E_attachmentID).getTextTrim();
                 ZimbraLog.extensions.debug("Uploaded XML file id = " + aid);
                 FileUploadServlet.Upload up = FileUploadServlet.fetchUpload(zsc.getAuthtokenAccountId(), aid, zsc.getAuthToken());
@@ -554,30 +541,21 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                     String outSuccessFileName = String.format("%s%s_bulk_report_%s_%s.csv", LC.zimbra_tmp_directory.value(),
                             File.separator, zsc.getAuthtokenAccountId(), fileToken);
                     FileOutputStream outReport = null;
-                    CSVWriter reportWriter = null;
                     try {
                         outReport = new FileOutputStream(outSuccessFileName);
-                        reportWriter = new CSVWriter(new OutputStreamWriter(outReport));
+                        CSVPrinter printer = CSVFormat.DEFAULT.withNullString("").print(new OutputStreamWriter(outReport, "UTF-8"));
                         for (String completedAccount : thread.getCompletedAccounts().keySet()) {
-                            String[] line = new String[2];
-                            line[0] = completedAccount; // account name
-                            line[1] = thread.getCompletedAccounts().get(completedAccount); // account password
-                            reportWriter.writeNext(line);
+                            List<String> line = new ArrayList<String>();
+                            line.add(completedAccount); // account name
+                            line.add(thread.getCompletedAccounts().get(completedAccount)); // account password
+                            printer.printRecord(line);
                         }
-                        reportWriter.close();
+                        printer.close();
                     } catch (FileNotFoundException e) {
                         throw ServiceException.FAILURE("Failed to create CSV file with a list of provisioned accounts", e);
                     } catch (IOException e) {
                         throw ServiceException.FAILURE("Failed to create CSV file with a list of provisioned accounts", e);
                     } finally {
-                        if (reportWriter != null) {
-                            try {
-                                reportWriter.close();
-                            } catch (IOException e) {
-                                ZimbraLog.extensions.error(e);
-                            }
-                        }
-
                         if (outReport != null) {
                             try {
                                 outReport.close();
@@ -593,31 +571,23 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                      */
                     if (thread.getWithErrors()) {
                         FileOutputStream out = null;
-                        CSVWriter errorWriter = null;
                         try {
                             String outErrorsFileName = String.format("%s%s_bulk_errors_%s_%s.csv",
                                     LC.zimbra_tmp_directory.value(), File.separator, zsc.getAuthtokenAccountId(), fileToken);
                             out = new FileOutputStream(outErrorsFileName);
-                            errorWriter = new CSVWriter(new OutputStreamWriter(out));
+                            CSVPrinter printer = CSVFormat.DEFAULT.withNullString("").print(new OutputStreamWriter(out, "UTF-8"));
                             for (String failedAccount : thread.getfailedAccounts().keySet()) {
-                                String[] line = new String[2];
-                                line[0] = failedAccount;
-                                line[1] = thread.getfailedAccounts().get(failedAccount).getMessage();
-                                errorWriter.writeNext(line);
+                                List<String> line = new ArrayList<String>();
+                                line.add(failedAccount);
+                                line.add(thread.getfailedAccounts().get(failedAccount).getMessage());
+                                printer.printRecord(line);
                             }
-                            errorWriter.close();
+                            printer.close();
                         } catch (FileNotFoundException e) {
                             throw ServiceException.FAILURE("Failed to create CSV file with error report", e);
                         } catch (IOException e) {
                             throw ServiceException.FAILURE("Failed to create CSV file with error report", e);
                         } finally {
-                            if (errorWriter != null) {
-                                try {
-                                    errorWriter.close();
-                                } catch (IOException e) {
-                                    ZimbraLog.extensions.error(e);
-                                }
-                            }
                             if (out != null) {
                                 try {
                                     out.close();
@@ -679,7 +649,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
      * @param allEntries
      * @throws ServiceException
      */
-    private void checkAccountLimits(List<String[]> allEntries, ZimbraSoapContext zsc, Provisioning prov) throws ServiceException {
+    private void checkAccountLimits(List<CSVRecord> allEntries, ZimbraSoapContext zsc, Provisioning prov) throws ServiceException {
         ZimbraLog.extensions.debug("Check the account limits ...");
         int numberOfEntries = allEntries.size();
 
@@ -687,13 +657,13 @@ public class BulkImportAccounts extends AdminDocumentHandler {
         Hashtable<String, Integer> h = new Hashtable<String, Integer>();
 
         for (int i = 0; i < numberOfEntries; i++) {
-            String[] entry = allEntries.get(i);
+            CSVRecord entry = allEntries.get(i);
             String accountName = null;
             String parts[] = null;
             String domainName = null;
 
             if (entry != null) {
-                accountName = entry[0];
+                accountName = entry.get(0);
             }
             if (accountName != null) {
                 parts = accountName.trim().split("@");
@@ -741,15 +711,14 @@ public class BulkImportAccounts extends AdminDocumentHandler {
         }
     }
 
-    private boolean validEntry(String[] entries, ZimbraSoapContext lc) throws ServiceException {
-        Provisioning prov = Provisioning.getInstance();
+    private boolean validEntry(CSVRecord entries, ZimbraSoapContext lc) throws ServiceException {
         String errorMsg = "";
-        if (entries.length != 6) {
+        if (entries.size() != 6) {
             errorMsg = "Invalid number of columns.";
             throw ServiceException.PARSE_ERROR(errorMsg, new Exception(errorMsg));
         }
 
-        String accountName = entries[0];
+        String accountName = entries.get(0);
 
         // 1. account name is specified and can be accessed by current
         // admin/domain admin user

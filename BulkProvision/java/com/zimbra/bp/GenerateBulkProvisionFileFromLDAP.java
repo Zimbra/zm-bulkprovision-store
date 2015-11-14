@@ -17,7 +17,6 @@
 package com.zimbra.bp;
 
 import java.io.File;
-
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -26,11 +25,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.io.XMLWriter;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.mailbox.ContactConstants;
@@ -38,6 +37,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.soap.AdminExtConstants;
 import com.zimbra.common.soap.Element;
 import com.zimbra.common.util.EmailUtil;
+import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.Domain;
 import com.zimbra.cs.account.GalContact;
@@ -53,7 +53,6 @@ import com.zimbra.cs.ldap.LdapException;
 import com.zimbra.cs.service.admin.AdminDocumentHandler;
 import com.zimbra.cs.service.admin.AdminService;
 import com.zimbra.soap.ZimbraSoapContext;
-import com.zimbra.cs.service.admin.AdminFileDownload;
 
 public class GenerateBulkProvisionFileFromLDAP extends AdminDocumentHandler {
 
@@ -152,50 +151,51 @@ public class GenerateBulkProvisionFileFromLDAP extends AdminDocumentHandler {
                             totalExistingAccounts++;
                         }
                     }
-                    response.addElement(AdminExtConstants.E_totalCount).setText(Integer.toString(totalAccounts));
-                    response.addElement(AdminExtConstants.E_domainCount).setText(Integer.toString(totalDomains));
-                    response.addElement(AdminExtConstants.E_skippedAccountCount).setText(
+                    response.addNonUniqueElement(AdminExtConstants.E_totalCount).setText(Integer.toString(totalAccounts));
+                    response.addNonUniqueElement(AdminExtConstants.E_domainCount).setText(Integer.toString(totalDomains));
+                    response.addNonUniqueElement(AdminExtConstants.E_skippedAccountCount).setText(
                             Integer.toString(totalExistingAccounts));
-                    response.addElement(AdminExtConstants.E_skippedDomainCount).setText(
+                    response.addNonUniqueElement(AdminExtConstants.E_skippedDomainCount).setText(
                             Integer.toString(totalExistingDomains));
-                    response.addElement(AdminExtConstants.E_SMTPHost).setText(SMTPHost);
-                    response.addElement(AdminExtConstants.E_SMTPPort).setText(SMTPPort);
+                    response.addNonUniqueElement(AdminExtConstants.E_SMTPHost).setText(SMTPHost);
+                    response.addNonUniqueElement(AdminExtConstants.E_SMTPPort).setText(SMTPPort);
                     return response;
-                } else if (AdminFileDownload.FILE_FORMAT_BULK_CSV.equalsIgnoreCase(fileFormat)) {
+                } else if (ZimbraBulkProvisionExt.FILE_FORMAT_BULK_CSV.equalsIgnoreCase(fileFormat)) {
                     outFileName = String.format("%s%s_bulk_%s_%s.csv", LC.zimbra_tmp_directory.value(), File.separator,
                             zsc.getAuthtokenAccountId(), fileToken);
                     FileOutputStream out = null;
-                    CSVWriter writer = null;
+                    CSVPrinter printer = null;
                     try {
                         out = new FileOutputStream(outFileName);
-                        writer = new CSVWriter(new OutputStreamWriter(out));
+                        printer = CSVFormat.DEFAULT.withNullString("").print(new OutputStreamWriter(out, "UTF-8"));
                         for (GalContact entry : entries) {
                             String mail = entry.getSingleAttr(ContactConstants.A_email);
-                            if (mail == null)
+                            if (mail == null) {
                                 continue;
-
-                            String[] line = new String[6];
-                            line[0] = mail;
-                            line[1] = entry.getSingleAttr(ContactConstants.A_fullName);
-                            line[2] = entry.getSingleAttr(ContactConstants.A_firstName);
-                            line[3] = entry.getSingleAttr(ContactConstants.A_lastName);
+                            }
+                            List<String> line = new ArrayList<String>();
+                            line.add(mail);
+                            line.add(entry.getSingleAttr(ContactConstants.A_fullName));
+                            line.add(entry.getSingleAttr(ContactConstants.A_firstName));
+                            line.add(entry.getSingleAttr(ContactConstants.A_lastName));
                             if (password != null) {
-                                line[4] = password;
+                                line.add(password);
                             } else if (generatePwd.equalsIgnoreCase("true")) {
-                                line[4] = String.valueOf(BulkImportAccounts.generateStrongPassword(genPwdLength));
+                                line.add(String.valueOf(BulkImportAccounts.generateStrongPassword(genPwdLength)));
                             }
 
-                            line[5] = mustChangePassword;
-                            writer.writeNext(line);
+                            line.add(mustChangePassword);
+                            printer.printRecord(line);
                         }
-                        writer.close();
+                        printer.close();
                     } catch (IOException e) {
                         throw ServiceException.FAILURE(e.getMessage(), e);
                     } finally {
-                        if (writer != null) {
+                        if(printer != null) {
                             try {
-                                writer.close();
-                            } catch (IOException ignore) {
+                                printer.close();
+                            } catch (IOException e) {
+                                ZimbraLog.extensions.error(e);
                             }
                         }
                         if (out != null) {
@@ -205,7 +205,7 @@ public class GenerateBulkProvisionFileFromLDAP extends AdminDocumentHandler {
                             }
                         }
                     }
-                } else if (AdminFileDownload.FILE_FORMAT_BULK_XML.equalsIgnoreCase(fileFormat)) {
+                } else if (ZimbraBulkProvisionExt.FILE_FORMAT_BULK_XML.equalsIgnoreCase(fileFormat)) {
                     outFileName = String.format("%s%s_bulk_%s_%s.xml", LC.zimbra_tmp_directory.value(), File.separator,
                             zsc.getAuthtokenAccountId(), fileToken);
                     FileWriter fileWriter = null;
@@ -285,7 +285,7 @@ public class GenerateBulkProvisionFileFromLDAP extends AdminDocumentHandler {
                             }
                         }
                     }
-                } else if (AdminFileDownload.FILE_FORMAT_MIGRATION_XML.equalsIgnoreCase(fileFormat)) {
+                } else if (ZimbraBulkProvisionExt.FILE_FORMAT_MIGRATION_XML.equalsIgnoreCase(fileFormat)) {
                     outFileName = String.format("%s%s_migration_%s_%s.xml", LC.zimbra_tmp_directory.value(),
                             File.separator, zsc.getAuthtokenAccountId(), fileToken);
                     FileWriter fileWriter = null;

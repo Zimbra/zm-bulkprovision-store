@@ -17,7 +17,12 @@
 package com.zimbra.bp;
 
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.qa.unittest.TestBulkProvision;
+import com.zimbra.qa.unittest.TestSearchResultsDownload;
+import com.zimbra.qa.unittest.ZimbraSuite;
 import com.zimbra.soap.SoapServlet;
+import com.zimbra.cs.extension.ExtensionDispatcherServlet;
 import com.zimbra.cs.extension.ZimbraExtension;
 
 /**
@@ -43,15 +48,30 @@ public class ZimbraBulkProvisionExt implements ZimbraExtension {
     public static final String OP_ABORT_IMPORT = "abortImport";
     public static final String OP_DISMISS_IMPORT = "dismissImport";
     public static final String IMAP_IMPORT_DS_NAME = "__imap_import__";
+    public static final String FILE_FORMAT_MIGRATION_XML = "migrationxml";
+    public static final String FILE_FORMAT_BULK_XML = "bulkxml";
+    public static final String FILE_FORMAT_BULK_CSV = "csv";
+    public static final String FILE_FORMAT_BULK_IMPORT_ERRORS = "errorscsv";
+    public static final String FILE_FORMAT_BULK_IMPORT_REPORT = "reportcsv";
 
     public void destroy() {
+        ExtensionDispatcherServlet.unregister(this);
     }
 
+    @Override
     public String getName() {
-        return EXTENSION_NAME_BULKPROVISION ;
+        return EXTENSION_NAME_BULKPROVISION;
     }
 
     public void init() throws ServiceException {
+        try {
+            ZimbraSuite.addTest(TestSearchResultsDownload.class);
+            ZimbraSuite.addTest(TestBulkProvision.class);
+        } catch (NoClassDefFoundError e) {
+            // Expected in production, because JUnit is not available.
+            ZimbraLog.test.debug("Unable to load TestSearchResultsDownload unit tests.", e);
+        }
+        ExtensionDispatcherServlet.register(this, new BulkDownloadServlet());
         //need to add the service calls to the admin soap calls
         SoapServlet.addService("AdminServlet", new ZimbraBulkProvisionService());
     }

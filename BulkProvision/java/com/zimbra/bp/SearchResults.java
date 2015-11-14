@@ -20,13 +20,15 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import au.com.bytecode.opencsv.CSVWriter;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 
 import com.zimbra.common.account.Key;
 import com.zimbra.common.account.ZAttrProvisioning;
@@ -56,113 +58,91 @@ import com.zimbra.cs.service.admin.AdminAccessControl;
  * To change this template use File | Settings | File Templates.
  */
 public class SearchResults {
-//    public static String ATTR_mail = "mail" ;
-    public static String ATTR_displayName = "displayName" ;
-    public static String ATTR_zimbraAccountStatus = "zimbraAccountStatus" ;
-    public static String ATTR_zimbraCOSId = "zimbraCOSId" ;
-//    public static String ATTR_zimbraId = "zimbraId" ;
-    public static String [] ACCOUNT_ATTRS = {ATTR_displayName, ATTR_zimbraAccountStatus, ATTR_zimbraCOSId, ZAttrProvisioning.A_zimbraLastLogonTimestamp} ;
+    public static String [] ACCOUNT_ATTRS = {ZAttrProvisioning.A_displayName, 
+        ZAttrProvisioning.A_zimbraAccountStatus, ZAttrProvisioning.A_zimbraCOSId};
     private static Set<String> ACCOUNT_ATTRS_SET = new HashSet<String>(Arrays.asList(ACCOUNT_ATTRS));
     private static String DATE_PATTERN = "yyyy.MM.dd, hh:mm:ss z";
 
     /**
      * The CSV file format will be
-     * name, zimbraId, type, [displayName, zimbraAccountStatus, zimbraCOSId]
+     * name, zimbraId, type, [displayName, zimbraAccountStatus, zimbraCOSId, zimbraLastLoginTimestamp]
      * @param out
      * @param query
      * @param domain
      * @param types
      */
-    public static void writeSearchResultOutputStream (
-            OutputStream out, String query, String domain, String types, AuthToken token)
+    public static void writeSearchResultOutputStream (OutputStream out, String query, String domain, String types, AuthToken token)
     throws ServiceException{
-
-        // the next line
-        AuthToken authToken = token;
-
         try {
-            CSVWriter writer = new CSVWriter(new OutputStreamWriter (out, "UTF-8") ) ;
-            List entryList = getSearchResults(authToken, query, domain, types );
+            CSVPrinter printer = CSVFormat.DEFAULT.withNullString("").print(new OutputStreamWriter(out, "UTF-8"));
+            List<NamedEntry> entryList = getSearchResults(token, query, domain, types);
             SimpleDateFormat formatter = new SimpleDateFormat(DATE_PATTERN);
-            int noCols = 7 ;
-            for (int i = 0 ; i < entryList.size(); i ++) {
-                String [] line = new String [noCols] ;
-                int m = 0 ;
-                NamedEntry entry = (NamedEntry) entryList.get(i) ;
-                line [m ++] = entry.getName() ;
-                line [m ++] = entry.getId();
+            ZimbraLog.extensions.debug("Writing out CSV file with %d search results", entryList.size());
+            for (int i = 0; i < entryList.size(); i++) {
+                List<String> line = new ArrayList<String>();
+                NamedEntry entry = (NamedEntry) entryList.get(i);
+                line.add(entry.getName());
+                line.add(entry.getId());
 
                 if (entry instanceof CalendarResource) {
-                    CalendarResource res = (CalendarResource) entry ;
-                    line [m ++] = AdminConstants.E_CALENDAR_RESOURCE ;
+                    line.add(AdminConstants.E_CALENDAR_RESOURCE);
                 } else if (entry instanceof Account) {
-                    Account acct = (Account) entry ;
-                    line[m ++] = AdminConstants.E_ACCOUNT ;
+                    line.add(AdminConstants.E_ACCOUNT);
                 } else if (entry instanceof DistributionList) {
-                    line[m ++] = AdminConstants.E_DL ;
+                    line.add(AdminConstants.E_DL);
                 } else if (entry instanceof Alias) {
-                    line[m ++] = AdminConstants.E_ALIAS ;
+                    line.add(AdminConstants.E_ALIAS);
                 } else if (entry instanceof Domain) {
-                    line[m ++] = AdminConstants.E_DOMAIN ;
+                    line.add(AdminConstants.E_DOMAIN);
                 } else if (entry instanceof Cos) {
-                    line[m ++] = AdminConstants.E_COS ;
+                    line.add(AdminConstants.E_COS);
                 }
 
-                 for (int j =0; j < ACCOUNT_ATTRS.length; j ++) {
-                    line[j+m] = entry.getAttr(ACCOUNT_ATTRS[j], "") ;
-                     if (ACCOUNT_ATTRS[j].equals(ZAttrProvisioning.A_zimbraLastLogonTimestamp)
-                             && !line[j+m].equals("")) {
-                         Date date = LdapDateUtil.parseGeneralizedTime(line[j+m]);
-                         line[j+m] = formatter.format(date);
-                     }
+                for (int j = 0; j < ACCOUNT_ATTRS.length; j++) {
+                    String val = entry.getAttr(ACCOUNT_ATTRS[j]);
+                    line.add(val);
                 }
-
-                ZimbraLog.extensions.debug("Adding entry content : " + Arrays.toString(line));
-                writer.writeNext(line);
+                String lastLogon = entry.getAttr(ZAttrProvisioning.A_zimbraLastLogonTimestamp);
+                if (lastLogon != null) {
+                    Date date = LdapDateUtil.parseGeneralizedTime(lastLogon);
+                    line.add(formatter.format(date));
+                }
+                printer.printRecord(line);
             }
-
-            writer.close();
-        }catch (Exception e) {
+            printer.close();
+        } catch (Exception e) {
             ZimbraLog.extensions.error(e);
-            throw ServiceException.FAILURE(e.getMessage(), e) ;
+            throw ServiceException.FAILURE(e.getMessage(), e);
         }
     }
 
-    public static List getSearchResults (AuthToken authToken, String query, String domain, String types)
+    private static List<NamedEntry> getSearchResults (AuthToken authToken, String query, String domain, String types)
     throws ServiceException {
-
-        if (query == null) query = "";
-        if (types == null) types = "";
-
         Provisioning prov = Provisioning.getInstance();
-
         Domain d = null;
         if (domain != null) {
             d = prov.get(Key.DomainBy.name, domain);
-            if (d == null)
+            if (d == null) {
                 throw AccountServiceException.NO_SUCH_DOMAIN(domain);
+            }
         }
-
+        ZimbraLog.extensions.debug("Performing a directory search. Query: %s, Domain: %s, Types: %s", query, domain, types);
         SearchDirectoryOptions options = new SearchDirectoryOptions();
-        options.setDomain(d);
         options.setTypes(types);
-        //make sure all the results are returned
-//        options.setMaxResults(maxResults);
+        if(d != null) {
+            options.setDomain(d);
+        }
         options.setFilterString(FilterId.ADMIN_SEARCH, query);
         options.setReturnAttrs(ACCOUNT_ATTRS);
-//            options.setSortAscending(sortAscending);
-//            options.setSortAttr(sortBy);
         options.setConvertIDNToAscii(true);
-        List accounts = prov.searchDirectory(options);
+        List<NamedEntry> accounts = prov.searchDirectory(options);
 
         // check rights and only returns allowed entries
         AdminAccessControl aac = AdminAccessControl.getAdminAccessControl(authToken);
         AdminAccessControl.SearchDirectoryRightChecker rightChecker =
             new AdminAccessControl.SearchDirectoryRightChecker(aac, prov, ACCOUNT_ATTRS_SET);
-        accounts = rightChecker.getAllowed(accounts);
-
-        return accounts ;
-
+        accounts = rightChecker.getAllowed(accounts, accounts.size());
+        return accounts;
     }
 
     public static void main (String [] args) throws ServiceException {
