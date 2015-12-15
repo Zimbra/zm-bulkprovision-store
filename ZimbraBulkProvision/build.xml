@@ -1,4 +1,4 @@
-<project name="ZimbraBulkProvision" default="jar"> 
+<project name="ZimbraBulkProvision" default="jar">
 
     <import file="../../ant-global.xml" />
 
@@ -6,7 +6,7 @@
 	    <not><isset property="env.ZIMBRASERVER_DIR"/></not>
 	</condition>
 
-	<property name="jar.file" value="zimbrabulkprovision-${project.maven.version}.jar" />
+	<property name="jar.file" value="com_zimbra_bulkprovision-${project.maven.version}.jar" />
 	<property name="src.zimlet.dir" location="${src.dir}/zimlet" />
 	<property name="build.zimlet.dir" location="${build.dir}/zimlet" />
 	<property name="ext.deploy.dir" location="${zimbra.home.dir}/lib/ext/com_zimbra_bulkprovision"/>
