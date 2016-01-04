@@ -2,11 +2,11 @@
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra Collaboration Suite Server
  * Copyright (C) 2010, 2011, 2012, 2013, 2014 Zimbra, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software Foundation,
  * version 2 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -122,7 +122,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
             if (sourceType.equalsIgnoreCase(ZimbraBulkProvisionExt.FILE_FORMAT_BULK_CSV)) {
                 String aid = request.getElement(AdminExtConstants.E_attachmentID).getTextTrim();
                 ZimbraLog.extensions.debug("Uploaded CSV file id = " + aid);
-                // response.addElement(E_attachmentID).addText(aid);
+                // response.addNonUniqueElement(E_attachmentID).addText(aid);
                 FileUploadServlet.Upload up = FileUploadServlet.fetchUpload(zsc.getAuthtokenAccountId(), aid, zsc.getAuthToken());
                 if (up == null) {
                     throw ServiceException.FAILURE("Uploaded CSV file with id " + aid + " was not found.", null);
@@ -143,7 +143,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                             ZimbraLog.extensions.error(e);
                             throw e;
                         }
-                        
+
                         if (!isValidEntry) {
                             throw ServiceException.INVALID_REQUEST(String.format("Entry %d is not valid (%s %s %s %s %s %s)", counter,
                                     record.get(0), record.get(1), record.get(2), record.get(3), record.get(4), record.get(5)), null);
@@ -219,7 +219,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                         throw new DocumentException("Bulk provisioning XML file's root element must be "
                                 + AdminExtConstants.E_ZCSImport);
                     }
-                    Iterator iter = root.elementIterator(AdminExtConstants.E_ImportUsers);
+                    Iterator<?> iter = root.elementIterator(AdminExtConstants.E_ImportUsers);
                     if (!iter.hasNext()) {
                         throw new DocumentException("Cannot find element " + AdminExtConstants.E_ImportUsers
                                 + " in uploaded bulk provisioning XML file");
@@ -229,14 +229,14 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                      * Settings from SOAP request take preference over settings in the XML file
                      */
                     if (SMTPHost.length() == 0) {
-                        Iterator iterMTPHost = root.elementIterator(AdminExtConstants.E_SMTPHost);
+                        Iterator<?> iterMTPHost = root.elementIterator(AdminExtConstants.E_SMTPHost);
                         if (iterMTPHost.hasNext()) {
                             org.dom4j.Element elSMTPHost = (org.dom4j.Element) iterMTPHost.next();
                             SMTPHost = elSMTPHost.getTextTrim();
                         }
                     }
                     if (SMTPPort.length() == 0) {
-                        Iterator iterSMTPort = root.elementIterator(AdminExtConstants.E_SMTPPort);
+                        Iterator<?> iterSMTPort = root.elementIterator(AdminExtConstants.E_SMTPPort);
                         if (iterSMTPort.hasNext()) {
                             org.dom4j.Element elSMTPPort = (org.dom4j.Element) iterSMTPort.next();
                             SMTPPort = elSMTPPort.getTextTrim();
@@ -248,7 +248,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                         }
                     }
                     org.dom4j.Element elImportUsers = (org.dom4j.Element) iter.next();
-                    for (Iterator userIter = elImportUsers.elementIterator(AdminExtConstants.E_User); userIter.hasNext();) {
+                    for (Iterator<?> userIter = elImportUsers.elementIterator(AdminExtConstants.E_User); userIter.hasNext();) {
                         org.dom4j.Element elUser = (org.dom4j.Element) userIter.next();
                         String userEmail = "";
                         String userFN = "";
@@ -256,7 +256,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                         String userDN = "";
                         String userPassword = "";
                         String userPwdMustChange = "FALSE";
-                        for (Iterator userPropsIter = elUser.elementIterator(); userPropsIter.hasNext();) {
+                        for (Iterator<?> userPropsIter = elUser.elementIterator(); userPropsIter.hasNext();) {
                             org.dom4j.Element el = (org.dom4j.Element) userPropsIter.next();
                             /*
                              * We support <ExchangeMail> element for
@@ -469,10 +469,10 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                 /*
                  * Do not start the import. Just generate a preview.
                  */
-                response.addElement(AdminExtConstants.E_totalCount).setText(Integer.toString(totalAccounts));
-                response.addElement(AdminExtConstants.E_skippedAccountCount).setText(Integer.toString(totalExistingAccounts));
-                response.addElement(AdminExtConstants.E_SMTPHost).setText(SMTPHost);
-                response.addElement(AdminExtConstants.E_SMTPPort).setText(SMTPPort);
+                response.addNonUniqueElement(AdminExtConstants.E_totalCount).setText(Integer.toString(totalAccounts));
+                response.addNonUniqueElement(AdminExtConstants.E_skippedAccountCount).setText(Integer.toString(totalExistingAccounts));
+                response.addNonUniqueElement(AdminExtConstants.E_SMTPHost).setText(SMTPHost);
+                response.addNonUniqueElement(AdminExtConstants.E_SMTPPort).setText(SMTPPort);
 
             } else if (ZimbraBulkProvisionExt.OP_START_IMPORT.equalsIgnoreCase(op)) {
                 /*
@@ -491,7 +491,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                     }
                     thread.setSourceAccounts(sourceEntries);
                     thread.start();
-                    response.addElement(AdminExtConstants.E_status).setText(Integer.toString(thread.getStatus()));
+                    response.addNonUniqueElement(AdminExtConstants.E_status).setText(Integer.toString(thread.getStatus()));
                 } else {
                     throw BulkProvisionException.BP_NO_ACCOUNTS_TO_IMPORT();
                 }
@@ -504,36 +504,36 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                 int status = thread.getStatus();
                 if (status != BulkProvisioningThread.iSTATUS_FINISHED) {
                     thread.abort();
-                    response.addElement(AdminExtConstants.E_status).setText(Integer.toString(thread.getStatus()));
-                    response.addElement(AdminExtConstants.E_provisionedCount).setText(
+                    response.addNonUniqueElement(AdminExtConstants.E_status).setText(Integer.toString(thread.getStatus()));
+                    response.addNonUniqueElement(AdminExtConstants.E_provisionedCount).setText(
                             Integer.toString(thread.getProvisionedCounter()));
-                    response.addElement(AdminExtConstants.E_skippedCount).setText(Integer.toString(thread.getSkippedCounter()));
-                    response.addElement(AdminExtConstants.E_totalCount).setText(Integer.toString(thread.getTotalCount()));
+                    response.addNonUniqueElement(AdminExtConstants.E_skippedCount).setText(Integer.toString(thread.getSkippedCounter()));
+                    response.addNonUniqueElement(AdminExtConstants.E_totalCount).setText(Integer.toString(thread.getTotalCount()));
                     if (thread.getWithErrors()) {
-                        response.addElement(AdminExtConstants.E_errorCount).addText(Integer.toString(thread.getFailCounter()));
+                        response.addNonUniqueElement(AdminExtConstants.E_errorCount).addText(Integer.toString(thread.getFailCounter()));
                     }
                     status = thread.getStatus();
                     if (status == BulkProvisioningThread.iSTATUS_ABORTED) {
                         BulkProvisioningThread.deleteThreadInstance(zsc.getAuthtokenAccountId());
                     }
                 } else {
-                    response.addElement(AdminExtConstants.E_status).setText(Integer.toString(status));
+                    response.addNonUniqueElement(AdminExtConstants.E_status).setText(Integer.toString(status));
                 }
             } else {
-                response.addElement(AdminExtConstants.E_status).setText(
+                response.addNonUniqueElement(AdminExtConstants.E_status).setText(
                         Integer.toString(BulkProvisioningThread.iSTATUS_NOT_RUNNING));
             }
         } else if (ZimbraBulkProvisionExt.OP_GET_STATUS.equalsIgnoreCase(op)) {
             BulkProvisioningThread thread = BulkProvisioningThread.getThreadInstance(zsc.getAuthtokenAccountId(), false);
             if (thread != null) {
                 int status = thread.getStatus();
-                response.addElement(AdminExtConstants.E_status).setText(Integer.toString(status));
-                response.addElement(AdminExtConstants.E_provisionedCount).setText(
+                response.addNonUniqueElement(AdminExtConstants.E_status).setText(Integer.toString(status));
+                response.addNonUniqueElement(AdminExtConstants.E_provisionedCount).setText(
                         Integer.toString(thread.getProvisionedCounter()));
-                response.addElement(AdminExtConstants.E_skippedCount).setText(Integer.toString(thread.getSkippedCounter()));
-                response.addElement(AdminExtConstants.E_totalCount).setText(Integer.toString(thread.getTotalCount()));
+                response.addNonUniqueElement(AdminExtConstants.E_skippedCount).setText(Integer.toString(thread.getSkippedCounter()));
+                response.addNonUniqueElement(AdminExtConstants.E_totalCount).setText(Integer.toString(thread.getTotalCount()));
                 if (thread.getWithErrors()) {
-                    response.addElement(AdminExtConstants.E_errorCount).addText(Integer.toString(thread.getFailCounter()));
+                    response.addNonUniqueElement(AdminExtConstants.E_errorCount).addText(Integer.toString(thread.getFailCounter()));
                 }
                 if (status == BulkProvisioningThread.iSTATUS_FINISHED || status == BulkProvisioningThread.iSTATUS_ABORTED
                         || status == BulkProvisioningThread.iSTATUS_ERROR) {
@@ -564,7 +564,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                             }
                         }
                     }
-                    response.addElement(AdminExtConstants.E_reportFileToken).addText(fileToken);
+                    response.addNonUniqueElement(AdminExtConstants.E_reportFileToken).addText(fileToken);
                     /**
                      * if thread is done for whichever reason and there are
                      * errors, generate an error report
@@ -600,7 +600,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                     BulkProvisioningThread.deleteThreadInstance(zsc.getAuthtokenAccountId());
                 }
             } else {
-                response.addElement(AdminExtConstants.E_status).setText(
+                response.addNonUniqueElement(AdminExtConstants.E_status).setText(
                         Integer.toString(BulkProvisioningThread.iSTATUS_NOT_RUNNING));
             }
         }

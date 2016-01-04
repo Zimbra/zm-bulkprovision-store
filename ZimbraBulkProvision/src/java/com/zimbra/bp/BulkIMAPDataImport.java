@@ -2,11 +2,11 @@
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra Collaboration Suite Server
  * Copyright (C) 2010, 2011, 2013, 2014 Zimbra, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software Foundation,
  * version 2 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -29,8 +29,10 @@ import org.dom4j.DocumentException;
 import org.dom4j.io.SAXReader;
 
 import com.zimbra.bp.BulkIMAPImportTaskManager.taskKeys;
+import com.zimbra.common.account.Key.AccountBy;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.soap.AdminConstants;
+import com.zimbra.common.soap.AdminExtConstants;
 import com.zimbra.common.soap.Element;
 import com.zimbra.common.util.StringUtil;
 import com.zimbra.common.util.ZimbraLog;
@@ -38,18 +40,15 @@ import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.AccountServiceException;
 import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.account.Provisioning;
-import com.zimbra.common.soap.AdminExtConstants;
-import com.zimbra.common.account.Key.AccountBy;
-import com.zimbra.soap.admin.type.DataSourceType;
-import com.zimbra.cs.datasource.DataSourceManager;
-import com.zimbra.cs.datasource.ImportStatus;
 import com.zimbra.cs.account.Server;
-import com.zimbra.cs.service.FileUploadServlet;
-import com.zimbra.cs.service.admin.AdminDocumentHandler;
-import com.zimbra.cs.service.admin.AdminFileDownload;
-import com.zimbra.soap.ZimbraSoapContext;
 import com.zimbra.cs.account.accesscontrol.AdminRight;
 import com.zimbra.cs.account.accesscontrol.Rights.Admin;
+import com.zimbra.cs.datasource.DataSourceManager;
+import com.zimbra.cs.datasource.ImportStatus;
+import com.zimbra.cs.service.FileUploadServlet;
+import com.zimbra.cs.service.admin.AdminDocumentHandler;
+import com.zimbra.soap.ZimbraSoapContext;
+import com.zimbra.soap.admin.type.DataSourceType;
 /**
  *
  * @author Greg Solovyev
@@ -88,7 +87,7 @@ public class BulkIMAPDataImport extends AdminDocumentHandler {
                 if (!root.getName().equals(AdminExtConstants.E_ZCSImport)) {
                     throw new DocumentException("Bulk provisioning XML file's root element must be " + AdminExtConstants.E_ZCSImport);
                 }
-                Iterator rootIter = root.elementIterator(AdminExtConstants.E_ImportUsers);
+                Iterator<?> rootIter = root.elementIterator(AdminExtConstants.E_ImportUsers);
                 if (!rootIter.hasNext()) {
                     throw new DocumentException("Cannot find element " + AdminExtConstants.E_ImportUsers + " in uploaded bulk provisioning XML file");
                 }
@@ -96,46 +95,46 @@ public class BulkIMAPDataImport extends AdminDocumentHandler {
 
                 IMAPAccounts = parseExternalIMAPAccounts(elImportUsers, zsc);
 
-                Iterator connectionTypeIter = root.elementIterator(AdminExtConstants.E_connectionType);
+                Iterator<?> connectionTypeIter = root.elementIterator(AdminExtConstants.E_connectionType);
                 if (connectionTypeIter.hasNext()) {
                     org.dom4j.Element elConnectionType = (org.dom4j.Element) connectionTypeIter.next();
                     connectionType = elConnectionType.getTextTrim();
                 }
-                Iterator sourceServerTypeIter = root.elementIterator(AdminExtConstants.E_sourceServerType);
+                Iterator<?> sourceServerTypeIter = root.elementIterator(AdminExtConstants.E_sourceServerType);
                 if (sourceServerTypeIter.hasNext()) {
                     org.dom4j.Element elSourceServerType = (org.dom4j.Element) sourceServerTypeIter.next();
                     sourceServerType = elSourceServerType.getTextTrim();
                 }
-                Iterator IMAPHostIter = root.elementIterator(AdminExtConstants.E_IMAPHost);
+                Iterator<?> IMAPHostIter = root.elementIterator(AdminExtConstants.E_IMAPHost);
                 if (IMAPHostIter.hasNext()) {
                     org.dom4j.Element elIMAPHost = (org.dom4j.Element) IMAPHostIter.next();
                     IMAPhost = elIMAPHost.getTextTrim();
                 }
 
-                Iterator IMAPPortIter  = root.elementIterator(AdminExtConstants.E_IMAPPort);
+                Iterator<?> IMAPPortIter  = root.elementIterator(AdminExtConstants.E_IMAPPort);
                 if (IMAPPortIter.hasNext()) {
                     org.dom4j.Element elIMAPPort = (org.dom4j.Element) IMAPPortIter.next();
                     IMAPport = elIMAPPort.getTextTrim();
                 }
 
-                Iterator IndexBatchSizeIter  = root.elementIterator(AdminExtConstants.E_indexBatchSize);
+                Iterator<?> IndexBatchSizeIter  = root.elementIterator(AdminExtConstants.E_indexBatchSize);
                 if (IndexBatchSizeIter.hasNext()) {
                     org.dom4j.Element elIxBatchSize = (org.dom4j.Element) IndexBatchSizeIter.next();
                     indexBatchSize = elIxBatchSize.getTextTrim();
                 }
 
-                Iterator useAdminLoginIter = root.elementIterator(AdminExtConstants.E_useAdminLogin);
+                Iterator<?> useAdminLoginIter = root.elementIterator(AdminExtConstants.E_useAdminLogin);
                 if (useAdminLoginIter.hasNext()) {
                     org.dom4j.Element elUseAdminLogin = (org.dom4j.Element) useAdminLoginIter.next();
                     useAdminLogin = "1".equalsIgnoreCase(elUseAdminLogin.getTextTrim());
                     if (useAdminLogin) {
-                        Iterator adminLoginIter = root.elementIterator(AdminExtConstants.E_IMAPAdminLogin);
+                        Iterator<?> adminLoginIter = root.elementIterator(AdminExtConstants.E_IMAPAdminLogin);
                         if (adminLoginIter.hasNext()) {
                             org.dom4j.Element elAdminLogin = (org.dom4j.Element) adminLoginIter.next();
                             adminLogin = elAdminLogin.getTextTrim();
                         }
 
-                        Iterator adminPassIter = root.elementIterator(AdminExtConstants.E_IMAPAdminPassword);
+                        Iterator<?> adminPassIter = root.elementIterator(AdminExtConstants.E_IMAPAdminPassword);
                         if (adminPassIter.hasNext()) {
                             org.dom4j.Element elAdminPassword = (org.dom4j.Element) adminPassIter.next();
                             adminPassword = elAdminPassword.getTextTrim();
@@ -173,7 +172,7 @@ public class BulkIMAPDataImport extends AdminDocumentHandler {
         if (IMAPAccounts.containsKey(accountState.running)) {
             runningAccounts = IMAPAccounts.get(accountState.running);
             if (runningAccounts != null) {
-                Element elRunningAccounts = response.addElement(AdminExtConstants.E_runningAccounts);
+                Element elRunningAccounts = response.addNonUniqueElement(AdminExtConstants.E_runningAccounts);
                 numRunningAccounts = runningAccounts.size();
                 Iterator<ExternalIMAPAccount> accountsIter = runningAccounts.iterator();
                 while (accountsIter.hasNext()) {
@@ -186,7 +185,7 @@ public class BulkIMAPDataImport extends AdminDocumentHandler {
         }
 
         if (IMAPAccounts.containsKey(accountState.finished)) {
-            List accounts = IMAPAccounts.get(accountState.finished);
+            List<?> accounts = IMAPAccounts.get(accountState.finished);
             if (accounts != null) {
                 numFinishedAccounts = accounts.size();
             }
@@ -239,21 +238,21 @@ public class BulkIMAPDataImport extends AdminDocumentHandler {
              * Do not start the import. Just generate a preview. We will count
              * idle and non-idle accounts.
              */
-            response.addElement(AdminExtConstants.E_totalCount).setText(Integer.toString(numIdleAccounts + numRunningAccounts + numFinishedAccounts));
-            response.addElement(AdminExtConstants.E_idleCount).setText(Integer.toString(numIdleAccounts));
-            response.addElement(AdminExtConstants.E_runningCount).setText(Integer.toString(numRunningAccounts));
-            response.addElement(AdminExtConstants.E_finishedCount).setText(Integer.toString(numFinishedAccounts));
+            response.addNonUniqueElement(AdminExtConstants.E_totalCount).setText(Integer.toString(numIdleAccounts + numRunningAccounts + numFinishedAccounts));
+            response.addNonUniqueElement(AdminExtConstants.E_idleCount).setText(Integer.toString(numIdleAccounts));
+            response.addNonUniqueElement(AdminExtConstants.E_runningCount).setText(Integer.toString(numRunningAccounts));
+            response.addNonUniqueElement(AdminExtConstants.E_finishedCount).setText(Integer.toString(numFinishedAccounts));
 
-            response.addElement(AdminExtConstants.E_connectionType).setText(connectionType);
-            response.addElement(AdminExtConstants.E_IMAPHost).setText(IMAPhost);
-            response.addElement(AdminExtConstants.E_IMAPPort).setText(IMAPport);
-            response.addElement(AdminExtConstants.E_indexBatchSize).setText(indexBatchSize);
+            response.addNonUniqueElement(AdminExtConstants.E_connectionType).setText(connectionType);
+            response.addNonUniqueElement(AdminExtConstants.E_IMAPHost).setText(IMAPhost);
+            response.addNonUniqueElement(AdminExtConstants.E_IMAPPort).setText(IMAPport);
+            response.addNonUniqueElement(AdminExtConstants.E_indexBatchSize).setText(indexBatchSize);
             if(useAdminLogin) {
-                response.addElement(AdminExtConstants.E_useAdminLogin).setText("1");
-                response.addElement(AdminExtConstants.E_IMAPAdminLogin).setText(adminLogin);
-                response.addElement(AdminExtConstants.E_IMAPAdminPassword).setText(adminPassword);
+                response.addNonUniqueElement(AdminExtConstants.E_useAdminLogin).setText("1");
+                response.addNonUniqueElement(AdminExtConstants.E_IMAPAdminLogin).setText(adminLogin);
+                response.addNonUniqueElement(AdminExtConstants.E_IMAPAdminPassword).setText(adminPassword);
             } else {
-                response.addElement(AdminExtConstants.E_useAdminLogin).setText("0");
+                response.addNonUniqueElement(AdminExtConstants.E_useAdminLogin).setText("0");
             }
         } else if (ZimbraBulkProvisionExt.OP_START_IMPORT.equalsIgnoreCase(op)) {
             if (idleAccounts == null) {
@@ -500,14 +499,14 @@ public class BulkIMAPDataImport extends AdminDocumentHandler {
         Map<accountState, List<ExternalIMAPAccount>> accts = new HashMap<accountState, List<ExternalIMAPAccount>>();
         Provisioning prov = Provisioning.getInstance();
 
-        for (Iterator userIter = root.elementIterator(AdminExtConstants.E_User); userIter.hasNext();) {
+        for (Iterator<?> userIter = root.elementIterator(AdminExtConstants.E_User); userIter.hasNext();) {
             org.dom4j.Element elUser = (org.dom4j.Element) userIter.next();
             String userEmail = "";
             String userLogin = "";
             String userPassword = "";
 
 
-            for (Iterator userPropsIter = elUser.elementIterator(); userPropsIter.hasNext();) {
+            for (Iterator<?> userPropsIter = elUser.elementIterator(); userPropsIter.hasNext();) {
                 org.dom4j.Element el = (org.dom4j.Element) userPropsIter.next();
                 /*
                  * We support <ExchangeMail> element for compatibility with
