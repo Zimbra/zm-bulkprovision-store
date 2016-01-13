@@ -2,11 +2,11 @@
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra Collaboration Suite Server
  * Copyright (C) 2008, 2009, 2010, 2013, 2014 Zimbra, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software Foundation,
  * version 2 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -25,6 +25,7 @@ import com.zimbra.common.service.ServiceException;
  * Time: 4:03:04 PM
  * To change this template use File | Settings | File Templates.
  */
+@SuppressWarnings("serial")
 public class BulkProvisionException extends ServiceException {
     public static final String BP_TOO_MANY_ACCOUNTS = "bulkprovision.BP_TOO_MANY_ACCOUNTS";
     public static final String BP_TOO_MANY_THREADS = "bulkprovision.BP_TOO_MANY_THREADS";
@@ -46,52 +47,52 @@ public class BulkProvisionException extends ServiceException {
     private BulkProvisionException(String message, String code, boolean isReceiversFault, Throwable cause) {
         super(message, code, isReceiversFault, cause);
     }
-    
+
     public static BulkProvisionException BP_TOO_MANY_ACCOUNTS (String desc) {
         return new BulkProvisionException("too many accounts: " + desc, BP_TOO_MANY_ACCOUNTS, SENDERS_FAULT);
     }
-    
+
     public static BulkProvisionException BP_TOO_MANY_THREADS (int numThreads) {
         return new BulkProvisionException("Reached the maximum number of simultaneous provisioning threads: " + Integer.toString(numThreads), BP_TOO_MANY_THREADS, SENDERS_FAULT);
-    }    
-    
+    }
+
     public static BulkProvisionException BP_IMPORT_THREAD_NOT_INITIALIZED () {
         return new BulkProvisionException("Bulk provisioning thread was not properly initialized", BP_IMPORT_THREAD_NOT_INITIALIZED, SENDERS_FAULT);
-    }    
-    
+    }
+
     public static BulkProvisionException BP_NO_ACCOUNTS_TO_IMPORT () {
         return new BulkProvisionException("Did not find any accounts to import", BP_NO_ACCOUNTS_TO_IMPORT, SENDERS_FAULT);
     }
-    
+
     public static BulkProvisionException BP_IMPORT_ALREADY_RUNNING () {
         return new BulkProvisionException("A bulk provisioning task is already running", BP_IMPORT_ALREADY_RUNNING, SENDERS_FAULT);
     }
-    
+
     public static BulkProvisionException BP_IMPORT_TOO_MANY_FAILURES (int failNum) {
         return new BulkProvisionException(String.format("Bulk provisioning task encountered too many errors. Failed to import at least %d accounts",failNum), BP_IMPORT_TOO_MANY_FAILURES, SENDERS_FAULT);
-    }    
-    
+    }
+
     public static BulkProvisionException BP_INVALID_SEARCH_FILTER (Throwable cause) {
         return new BulkProvisionException(cause.getMessage(), BP_INVALID_SEARCH_FILTER, SENDERS_FAULT, cause);
     }
-    
+
     public static BulkProvisionException BP_NAMING_EXCEPTION (Throwable cause) {
         return new BulkProvisionException(cause.getMessage(), BP_NAMING_EXCEPTION, SENDERS_FAULT, cause);
     }
-    
+
     public static BulkProvisionException EMPTY_ACCOUNT_ID () {
         return new BulkProvisionException("Empty account ID in the task", EMPTY_ACCOUNT_ID, SENDERS_FAULT);
-    }    
+    }
     public static BulkProvisionException EMPTY_DATASOURCE_ID () {
         return new BulkProvisionException("Empty datasource ID in the task", EMPTY_DATASOURCE_ID, SENDERS_FAULT);
-    }        
-    
+    }
+
     public static BulkProvisionException IMPORT_QUEUE_NOT_INITIALIZED () {
         return new BulkProvisionException("Import queue is not initialized", IMPORT_QUEUE_NOT_INITIALIZED, SENDERS_FAULT);
-    }   
-    
+    }
+
     public static BulkProvisionException EMPTY_IMPORT_QUEUE () {
         return new BulkProvisionException("Import queue is empty", EMPTY_IMPORT_QUEUE, SENDERS_FAULT);
-    }       
+    }
 }
 
