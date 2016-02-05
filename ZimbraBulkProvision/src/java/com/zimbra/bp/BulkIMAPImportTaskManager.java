@@ -2,11 +2,11 @@
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra Collaboration Suite Server
  * Copyright (C) 2010, 2011, 2013, 2014 Zimbra, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software Foundation,
  * version 2 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -43,8 +43,6 @@ public class BulkIMAPImportTaskManager {
     private static HashMap<String, Queue<HashMap<taskKeys, String>>> finishedQueues = new HashMap<String, Queue<HashMap<taskKeys, String>>>();
     private static HashMap<String, Queue<HashMap<taskKeys, String>>> failedQueues = new HashMap<String, Queue<HashMap<taskKeys, String>>>();
 
-    private static int MAX_THREADS = 10;
-
     public static enum taskKeys {
         accountID, dataSourceID
     }
@@ -52,7 +50,7 @@ public class BulkIMAPImportTaskManager {
     public static HashMap<String, Queue<HashMap<taskKeys, String>>> getImportQueues() {
         return importQueues;
     }
-    
+
     public static Queue<HashMap<taskKeys, String>> createQueue(String adminID) {
         synchronized (importQueues) {
             Queue<HashMap<taskKeys, String>> lst = importQueues.get(adminID);
@@ -71,27 +69,27 @@ public class BulkIMAPImportTaskManager {
                 lst = new LinkedList<HashMap<taskKeys, String>>();
                 runningQueues.put(adminID, lst);
             }
-            return lst;             
+            return lst;
         }
     }
-      
+
     public static Queue<HashMap<taskKeys, String>> getRunningQueue(String adminID) {
         synchronized (runningQueues) {
             return runningQueues.get(adminID);
         }
     }
-    
+
     public static Queue<HashMap<taskKeys, String>> getFinishedQueue(String adminID) {
         synchronized (finishedQueues) {
             return finishedQueues.get(adminID);
         }
-    }    
+    }
 
     public static Queue<HashMap<taskKeys, String>> getFailedQueue(String adminID) {
         synchronized (failedQueues) {
             return failedQueues.get(adminID);
         }
-    }        
+    }
 
     public static void purgeQueue(String adminID) throws BulkProvisionException, ServiceException {
         synchronized (importQueues) {
@@ -99,8 +97,8 @@ public class BulkIMAPImportTaskManager {
                 throw BulkProvisionException.EMPTY_IMPORT_QUEUE();
             }
             cleanTaskQueue(importQueues.get(adminID));
-            importQueues.remove(adminID);            
-        }   
+            importQueues.remove(adminID);
+        }
         synchronized (finishedQueues) {
             if (finishedQueues.containsKey(adminID)) {
                 cleanTaskQueue(finishedQueues.get(adminID));
@@ -118,9 +116,9 @@ public class BulkIMAPImportTaskManager {
                 cleanTaskQueue(failedQueues.get(adminID));
                 failedQueues.remove(adminID);
             }
-        }          
+        }
     }
-    
+
     /**
      * TODO: abort running imports. Currently if we delete a task from the queue active data import continues to run
      * @param taskQueue
@@ -141,7 +139,7 @@ public class BulkIMAPImportTaskManager {
                     if (dataSourceID == null) {
                         ZimbraLog.extensions.error("Error while cleaning IMAP import task queue.", BulkProvisionException.EMPTY_DATASOURCE_ID());
                         continue;
-                    }   
+                    }
                     Account acct = Provisioning.getInstance().getAccountById(accountID);
                     try {
                         DataSourceManager.deleteManaged(accountID, dataSourceID);
@@ -154,9 +152,9 @@ public class BulkIMAPImportTaskManager {
                     iter.remove();
                 }
             }
-        } 
+        }
     }
-    
+
     public static void startImport(String adminID) throws ServiceException {
         Queue<HashMap<taskKeys, String>> queue = null;
         synchronized (importQueues) {
@@ -192,7 +190,7 @@ public class BulkIMAPImportTaskManager {
                     lst = importQueues.get(queueKey);
                 }
             }
-            
+
             Queue<HashMap<taskKeys, String>> finishedList;
             synchronized (finishedQueues) {
                 finishedList = finishedQueues.get(queueKey);
@@ -249,19 +247,19 @@ public class BulkIMAPImportTaskManager {
                     }
 
                     DataSourceManager.importData(importDS, true);
-                    
+
                     //revert batch index size
                     Map<String, Object> accAttrs = new HashMap<String, Object>();
-                    StringUtil.addToMultiMap(accAttrs,Provisioning.A_zimbraBatchedIndexingSize, null);                    
+                    StringUtil.addToMultiMap(accAttrs,Provisioning.A_zimbraBatchedIndexingSize, null);
                     Provisioning.getInstance().modifyAttrs(acct, accAttrs, true);
-                    
+
                     //report finished task
                     HashMap<taskKeys, String> finishedTask = new HashMap<taskKeys, String>();
                     finishedTask.put(taskKeys.accountID, accountID);
                     finishedTask.put(taskKeys.dataSourceID,dataSourceID);
                     synchronized(finishedList) {
                         finishedList.add(finishedTask);
-                    }                    
+                    }
                 } catch (ServiceException e) {
                     ZimbraLog.extensions.error(String.format("Error in IMAP import task for account %s, datasource %s",accountID,dataSourceID), e);
                     synchronized (failedQueues) {
@@ -274,9 +272,9 @@ public class BulkIMAPImportTaskManager {
                         failedTask.put(taskKeys.accountID, accountID);
                         failedTask.put(taskKeys.dataSourceID,dataSourceID);
                         failedList.add(failedTask);
-                    }                                      
+                    }
                     continue;
-                } 
+                }
             }
         }
     }
