@@ -2,11 +2,11 @@
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra Collaboration Suite Server
  * Copyright (C) 2010, 2011, 2012, 2013, 2014 Zimbra, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software Foundation,
  * version 2 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -38,7 +38,6 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
-import org.dom4j.io.SAXReader;
 
 import com.zimbra.common.account.Key;
 import com.zimbra.common.account.Key.DomainBy;
@@ -47,6 +46,8 @@ import com.zimbra.common.mailbox.ContactConstants;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.soap.AdminExtConstants;
 import com.zimbra.common.soap.Element;
+import com.zimbra.common.soap.W3cDomUtil;
+import com.zimbra.common.soap.XmlParseException;
 import com.zimbra.common.util.EmailUtil;
 import com.zimbra.common.util.StringUtil;
 import com.zimbra.common.util.ZimbraLog;
@@ -143,7 +144,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                             ZimbraLog.extensions.error(e);
                             throw e;
                         }
-                        
+
                         if (!isValidEntry) {
                             throw ServiceException.INVALID_REQUEST(String.format("Entry %d is not valid (%s %s %s %s %s %s)", counter,
                                     record.get(0), record.get(1), record.get(2), record.get(3), record.get(4), record.get(5)), null);
@@ -206,14 +207,16 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                 }
             } else if (sourceType.equalsIgnoreCase(ZimbraBulkProvisionExt.FILE_FORMAT_BULK_XML)) {
                 String aid = request.getElement(AdminExtConstants.E_attachmentID).getTextTrim();
-                ZimbraLog.extensions.debug("Uploaded XML file id = " + aid);
-                FileUploadServlet.Upload up = FileUploadServlet.fetchUpload(zsc.getAuthtokenAccountId(), aid, zsc.getAuthToken());
+                ZimbraLog.extensions.debug("Uploaded %s file id = %s",
+                        ZimbraBulkProvisionExt.FILE_FORMAT_BULK_XML, aid);
+                FileUploadServlet.Upload up = FileUploadServlet.fetchUpload(
+                        zsc.getAuthtokenAccountId(), aid, zsc.getAuthToken());
                 if (up == null) {
-                    throw ServiceException.FAILURE("Uploaded CSV file with id " + aid + " was not found.", null);
+                    throw ServiceException.FAILURE(String.format("Uploaded %s file with id '%s' was not found.",
+                        ZimbraBulkProvisionExt.FILE_FORMAT_BULK_XML, aid), null);
                 }
-                SAXReader reader = new SAXReader();
                 try {
-                    Document doc = reader.read(up.getInputStream());
+                    Document doc = W3cDomUtil.parseXMLToDom4jDocUsingSecureProcessing(up.getInputStream());
                     org.dom4j.Element root = doc.getRootElement();
                     if (!root.getName().equals(AdminExtConstants.E_ZCSImport)) {
                         throw new DocumentException("Bulk provisioning XML file's root element must be "
@@ -328,10 +331,7 @@ public class BulkImportAccounts extends AdminDocumentHandler {
                         }
                         totalAccounts++;
                     }
-
-                } catch (DocumentException e) {
-                    throw ServiceException.FAILURE("Bulk provisioning failed to read uploaded XML document.", e);
-                } catch (IOException e) {
+                } catch (IOException | DocumentException | XmlParseException e) {
                     throw ServiceException.FAILURE("Bulk provisioning failed to read uploaded XML document.", e);
                 }
             } else if (sourceType.equalsIgnoreCase(ZimbraBulkProvisionExt.FILE_FORMAT_BULK_LDAP)) {

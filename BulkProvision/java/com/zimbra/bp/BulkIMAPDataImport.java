@@ -2,11 +2,11 @@
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra Collaboration Suite Server
  * Copyright (C) 2010, 2011, 2013, 2014 Zimbra, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software Foundation,
  * version 2 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -26,30 +26,30 @@ import java.util.Queue;
 
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
-import org.dom4j.io.SAXReader;
 
 import com.zimbra.bp.BulkIMAPImportTaskManager.taskKeys;
+import com.zimbra.common.account.Key.AccountBy;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.soap.AdminConstants;
+import com.zimbra.common.soap.AdminExtConstants;
 import com.zimbra.common.soap.Element;
+import com.zimbra.common.soap.W3cDomUtil;
+import com.zimbra.common.soap.XmlParseException;
 import com.zimbra.common.util.StringUtil;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.AccountServiceException;
 import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.account.Provisioning;
-import com.zimbra.common.soap.AdminExtConstants;
-import com.zimbra.common.account.Key.AccountBy;
-import com.zimbra.soap.admin.type.DataSourceType;
-import com.zimbra.cs.datasource.DataSourceManager;
-import com.zimbra.cs.datasource.ImportStatus;
 import com.zimbra.cs.account.Server;
-import com.zimbra.cs.service.FileUploadServlet;
-import com.zimbra.cs.service.admin.AdminDocumentHandler;
-import com.zimbra.cs.service.admin.AdminFileDownload;
-import com.zimbra.soap.ZimbraSoapContext;
 import com.zimbra.cs.account.accesscontrol.AdminRight;
 import com.zimbra.cs.account.accesscontrol.Rights.Admin;
+import com.zimbra.cs.datasource.DataSourceManager;
+import com.zimbra.cs.datasource.ImportStatus;
+import com.zimbra.cs.service.FileUploadServlet;
+import com.zimbra.cs.service.admin.AdminDocumentHandler;
+import com.zimbra.soap.ZimbraSoapContext;
+import com.zimbra.soap.admin.type.DataSourceType;
 /**
  *
  * @author Greg Solovyev
@@ -60,6 +60,7 @@ public class BulkIMAPDataImport extends AdminDocumentHandler {
         idle, running, finished;
     }
 
+    @Override
     public Element handle(Element request, Map<String, Object> context)
             throws ServiceException {
         ZimbraSoapContext zsc = getZimbraSoapContext(context);
@@ -81,8 +82,7 @@ public class BulkIMAPDataImport extends AdminDocumentHandler {
             }
 
             try {
-                SAXReader reader = new SAXReader();
-                Document doc = reader.read(up.getInputStream());
+                Document doc = W3cDomUtil.parseXMLToDom4jDocUsingSecureProcessing(up.getInputStream());
                 org.dom4j.Element root = doc.getRootElement();
 
                 if (!root.getName().equals(AdminExtConstants.E_ZCSImport)) {
@@ -143,9 +143,7 @@ public class BulkIMAPDataImport extends AdminDocumentHandler {
                     }
                 }
 
-            } catch (DocumentException e) {
-                throw ServiceException.FAILURE("Bulk provisioning failed to read uploaded XML document.",e);
-            } catch (IOException e) {
+            } catch (IOException | DocumentException | XmlParseException e) {
                 throw ServiceException.FAILURE("Bulk provisioning failed to read uploaded XML document.",e);
             }
         } else if (sourceType.equalsIgnoreCase(ZimbraBulkProvisionExt.FILE_FORMAT_ZIMBRA)) {
@@ -634,7 +632,8 @@ public class BulkIMAPDataImport extends AdminDocumentHandler {
         return importDS;
     }
 
-   public void docRights(List<AdminRight> relatedRights, List<String> notes) {
+   @Override
+public void docRights(List<AdminRight> relatedRights, List<String> notes) {
         relatedRights.add(Admin.R_createMigrationTask);
         relatedRights.add(Admin.R_modifyAccount);
         relatedRights.add(Admin.R_adminLoginAs);
