@@ -2,11 +2,11 @@
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra Collaboration Suite Server
  * Copyright (C) 2010, 2011, 2013, 2014 Zimbra, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software Foundation,
  * version 2 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -27,8 +27,8 @@ import com.zimbra.common.soap.AdminConstants;
 import com.zimbra.common.soap.AdminExtConstants;
 import com.zimbra.common.soap.Element;
 import com.zimbra.cs.account.Account;
-import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.account.AttributeManager.IDNType;
+import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.account.accesscontrol.AccessControlUtil;
 import com.zimbra.cs.service.admin.AdminDocumentHandler;
 import com.zimbra.cs.service.admin.ToXML;
@@ -58,7 +58,7 @@ public class GetBulkIMAPImportTaskList extends AdminDocumentHandler  {
         }
         return response;
     }
-    
+
     private void encodeTask (Element response, String adminID) throws ServiceException {
         Account acct = Provisioning.getInstance().getAccountById(adminID);
         Queue<HashMap<taskKeys, String>> fq =  BulkIMAPImportTaskManager.getFinishedQueue(adminID);
@@ -74,15 +74,15 @@ public class GetBulkIMAPImportTaskList extends AdminDocumentHandler  {
             synchronized(eq) {
                 numFailed = eq.size();
             }
-        }        
+        }
         int numTotal = 0;
         Queue<HashMap<taskKeys, String>> rq =  BulkIMAPImportTaskManager.getRunningQueue(adminID);
         if(rq!=null) {
             synchronized(rq) {
                 numTotal = rq.size();
             }
-        } 
-        Element elTask = response.addElement(AdminExtConstants.E_Task);
+        }
+        Element elTask = response.addUniqueElement(AdminExtConstants.E_Task);
         ToXML.encodeAttr(elTask,AdminExtConstants.A_owner,acct.getName(),AdminConstants.E_A,AdminConstants.A_N,IDNType.none, true);
         ToXML.encodeAttr(elTask,AdminExtConstants.A_totalTasks,Integer.toString(numTotal),AdminConstants.E_A,AdminConstants.A_N,IDNType.none, true);
         ToXML.encodeAttr(elTask,AdminExtConstants.A_finishedTasks,Integer.toString(numFinished),AdminConstants.E_A,AdminConstants.A_N,IDNType.none, true);
