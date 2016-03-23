@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import junit.framework.TestCase;
+
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -51,8 +53,6 @@ import com.zimbra.soap.adminext.message.BulkImportAccountsRequest;
 import com.zimbra.soap.adminext.message.BulkImportAccountsResponse;
 import com.zimbra.soap.type.AccountSelector;
 
-import junit.framework.TestCase;
-
 public class TestBulkProvision extends TestCase {
     private static final String USER_PREFIX = TestBulkProvision.class.getSimpleName().toLowerCase() + "_";
     private static final int NUM_ACCOUNTS = 10;
@@ -81,7 +81,6 @@ public class TestBulkProvision extends TestCase {
         String host =  Provisioning.getInstance().getLocalServer().getName();
         int port = getAdminPort();
         AuthToken at = AuthProvider.getAdminAuthToken();
-        at.setCsrfTokenEnabled(true);
         HttpClient eve = getHttpClient(at, host);
         String uploadId = uploadAndGetUploadId(host, port, eve, "bulkFile_" + USER_PREFIX + ".xml", xmlContent);
         BulkImportAccountsRequest bulkImportRequest = new BulkImportAccountsRequest();
@@ -113,7 +112,6 @@ public class TestBulkProvision extends TestCase {
         String host =  Provisioning.getInstance().getLocalServer().getName();
         int port = getAdminPort();
         AuthToken at = AuthProvider.getAdminAuthToken();
-        at.setCsrfTokenEnabled(true);
         HttpClient eve = getHttpClient(at, host);
         String uploadId = uploadAndGetUploadId(host, port, eve, "bulkFile_" + USER_PREFIX + "EN.xml", xmlContent);
         BulkImportAccountsRequest bulkImportRequest = new BulkImportAccountsRequest();
