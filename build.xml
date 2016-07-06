@@ -11,9 +11,9 @@
     <mkdir dir="${dist.lib.ext.dir}"/>
   </target>
   <target name="resolve" depends="init-ivy" description="resolve dependencies">
+    <property name="ivy.settings.file" value="../zm-zcs/ivysettings.xml" />
     <ivy:resolve />
     <ivy:cachepath pathid="class.path" />
-    <ivy:settings file="../zm-zcs/ivysettings.xml" />
   </target>
   <target name="compile" depends="build-init,resolve" description="Compiles the source code">
     <mkdir dir="${build.classes.dir}"/>
