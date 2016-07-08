@@ -1,56 +1,46 @@
 <?xml version="1.0"?>
-<project name="ZimbraBulkProvisionStore" default="jar">
+<project name="ZimbraBulkProvisionStore" default="deploy">
   <import file="../zm-zcs/ant-global.xml" />
-  <property environment="env"/>
+  <!-- Properties -->
+  <property name="ext.name" value="com_zimbra_bulkprovision"/>
+  <property name="dist.lib.dir" location="${dist.dir}/lib"/>
+  <property name="dist.lib.ext.dir" location="${dist.lib.dir}/ext"/>
+  <property name="extension.dist.dir" location="${dist.lib.ext.dir}/${ext.name}"/>
+  <property name="jar.file" value="${ext.name}.jar"/>
+  <property name="extension.deploy.dir" location="${zimbra.home.dir}/lib/ext/${ext.name}"/>
+  
   <!-- build-init -->
   <target name="build-init">
     <mkdir dir="${build.classes.dir}"/>
     <mkdir dir="${dist.dir}"/>
     <mkdir dir="${dist.lib.dir}"/>
     <mkdir dir="${dist.lib.ext.dir}"/>
+    <mkdir dir="${extension.dist.dir}"/>
   </target>
+
   <!-- deploy -->
-  <target name="deploy" description="Deploy zm-bulkprovision-store">
-    <antcall target="deploy-server-extension">
-      <param name="ext.dir" value="BulkProvision"/>
-      <param name="ext.name" value="com_zimbra_bulkprovision" />
-    </antcall>
-  </target>
+  <target name="deploy" depends="deploy-server-extension" description="Deploy the extension" />
 
-  <!-- QUESTION: Should this target be moved to ant-global? -->
   <target name="deploy-server-extension" depends="jar">
-    <!-- TODO <ant dir="${zimbraServer.dir}" target="stop-webserver" inheritAll="false"/> -->
-    <copy todir="${zimbra.home.dir}/lib/ext/${ext.name}">
-      <fileset dir="${build.dir}" includes="${ext.name}.jar" />
+    <ant dir="${server.dir}" target="stop-webserver" inheritAll="false"/>
+    <copy todir="${extension.deploy.dir}">
+      <fileset dir="${build.dir}" includes="${jar.file}" />
     </copy>
-    <if>
-      <available file="${ext.dir}/jars" type="dir" />
-    <then>
-        <copy todir="${zimbra.home.dir}/lib/ext/${ext.name}">
-            <fileset dir="${ext.dir}/jars" includes="*.jar" />
-        </copy>
-    </then>
-    </if>
-    <!-- TODO <ant dir="${zimbraServer.dir}" target="start-webserver" inheritAll="false"/> -->
+    <ant dir="${server.dir}" target="start-webserver" inheritAll="false"/>
   </target>
 
-  <!-- dist, jar -->
-  <property name="dist.lib.dir" location="${dist.dir}/lib"/>
-  <property name="dist.lib.ext.dir" location="${dist.lib.dir}/ext"/>
-  <property name="implementation.title" value="com_zimbra_bulkprovision"/>
-  <property name="jar.file" value="com_zimbra_bulkprovision.jar"/>
-
+  <!-- dist -->
   <target name="dist" depends="jar" description="Copies jar to dist dir">
-    <copy todir="${dist.lib.ext.dir}">
-      <fileset dir="${build.dir}" includes="*.jar" />
+    <copy todir="${extension.dist.dir}">
+      <fileset dir="${build.dir}" includes="${jar.file}" />
     </copy>
   </target>
 
-  <target name="jar" depends="compile,zimbra-jar" description="Creates the jar file">
+  <!-- jar -->
+  <target name="jar" depends="compile" description="Creates the jar file">
     <antcall target="zimbra-jar">
-      <param name="implementation.title" value="com_zimbra_bulkprovision" />
+      <param name="implementation.title" value="${ext.name}" />
       <param name="zimbra.extension.class" value="com.zimbra.bp.ZimbraBulkProvisionExt" />
     </antcall>
   </target>
-
 </project>
