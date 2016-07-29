@@ -1,15 +1,13 @@
 <?xml version="1.0"?>
-<project name="ZimbraBulkProvisionStore" default="deploy">
+<project name="zm-bulkprovision-store" default="deploy">
   <import file="../zm-zcs/ant-global.xml" />
   <!-- Properties -->
   <property name="ext.name" value="com_zimbra_bulkprovision"/>
   <property name="dist.lib.dir" location="${dist.dir}/lib"/>
   <property name="dist.lib.ext.dir" location="${dist.lib.dir}/ext"/>
   <property name="extension.dist.dir" location="${dist.lib.ext.dir}/${ext.name}"/>
-  <property name="jar.file" value="${ext.name}.jar"/>
   <property name="extension.deploy.dir" location="${zimbra.home.dir}/lib/ext/${ext.name}"/>
   
-  <!-- build-init -->
   <target name="build-init">
     <mkdir dir="${build.classes.dir}"/>
     <mkdir dir="${dist.dir}"/>
@@ -18,10 +16,7 @@
     <mkdir dir="${extension.dist.dir}"/>
   </target>
 
-  <!-- deploy -->
-  <target name="deploy" depends="deploy-server-extension" description="Deploy the extension" />
-
-  <target name="deploy-server-extension" depends="jar">
+  <target name="deploy" depends="jar">
     <ant dir="${server.dir}" target="stop-webserver" inheritAll="false"/>
     <copy todir="${extension.deploy.dir}">
       <fileset dir="${build.dir}" includes="${jar.file}" />
@@ -29,14 +24,18 @@
     <ant dir="${server.dir}" target="start-webserver" inheritAll="false"/>
   </target>
 
-  <!-- dist -->
+  <target name="undeploy" depends="jar">
+    <ant dir="${server.dir}" target="stop-webserver" inheritAll="false"/>
+    <delete dir="${extension.deploy.dir}"/>
+    <ant dir="${server.dir}" target="start-webserver" inheritAll="false"/>
+  </target>
+
   <target name="dist" depends="jar" description="Copies jar to dist dir">
     <copy todir="${extension.dist.dir}">
       <fileset dir="${build.dir}" includes="${jar.file}" />
     </copy>
   </target>
 
-  <!-- jar -->
   <target name="jar" depends="compile" description="Creates the jar file">
     <antcall target="zimbra-jar">
       <param name="implementation.title" value="${ext.name}" />
