@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<project name="zm-bulkprovision-store" default="deploy">
+<project xmlns:ivy="antlib:org.apache.ivy.ant" name="zm-bulkprovision-store" default="deploy">
+
   <import file="../zm-zcs/ant-global.xml" />
   <!-- Properties -->
   <property name="ext.name" value="com_zimbra_bulkprovision"/>
@@ -41,5 +42,17 @@
       <param name="implementation.title" value="${ext.name}" />
       <param name="zimbra.extension.class" value="com.zimbra.bp.ZimbraBulkProvisionExt" />
     </antcall>
+    <copy todir="${dist.dir}">
+      <fileset dir="${build.dir}"/>
+         <globmapper from="zm-bulkprovision-store-*.jar" to="zm-bulkprovision-store.jar"/>
+    </copy>
+    <delete dir="${build.tmp.dir}"/>
+    <ivy:install organisation="org.apache.commons" module="commons-csv" revision="1.2" settingsRef="dev.settings" from="chain-resolver" to="build-tmp" overwrite="true" transitive="false" type="jar"/>
+    <copy todir="${dist.dir}">
+      <fileset dir="${build.tmp.dir}">
+        <include name="*.jar"/>
+      </fileset>
+    </copy>
+    <delete dir="${build.tmp.dir}"/>
   </target>
 </project>
