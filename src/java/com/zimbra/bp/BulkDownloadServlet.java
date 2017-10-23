@@ -31,7 +31,7 @@ public class BulkDownloadServlet extends ExtensionHttpHandler {
         try {
             // check the auth token
             AuthToken authToken = ZimbraServlet.getAdminAuthTokenFromCookie(req, resp);
-            if (authToken == null || !authToken.isAdmin()) {
+            if (authToken == null || !AuthToken.isAnyAdmin(authToken)) {
                 sendError(resp, HttpServletResponse.SC_FORBIDDEN, "Auth failed");
             }
 
