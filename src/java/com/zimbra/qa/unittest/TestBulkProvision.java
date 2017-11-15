@@ -227,8 +227,7 @@ public class TestBulkProvision extends TestCase {
     private static void validateReportCSV(String fileID, int expected, String host, int port, HttpClient eve)
     throws HttpException, IOException {
         String bulkDownloadURL = "https://" + host + ":" + port +
-            "/service/extension/com_zimbra_bulkprovision/bulkdownload?action=getBulkFile&fileFormat=reportcsv&fileID=" +
-            fileID;
+            "/service/extension/com_zimbra_bulkprovision/bulkdownload?fileFormat=reportcsv&fileID=" + fileID;
 
         GetMethod get = new GetMethod(bulkDownloadURL);
         int statusCode = HttpClientUtil.executeMethod(eve, get);
