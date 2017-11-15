@@ -21,7 +21,6 @@ import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.junit.Test;
 
-import com.zimbra.bp.BulkDownloadServlet;
 import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.soap.AdminConstants;
@@ -69,7 +68,7 @@ public class TestSearchResultsDownload extends TestCase {
             ZimbraLog.test.error("Unable to get admin SOAP port", e);
         }
         String host =  Provisioning.getInstance().getLocalServer().getName();
-        String searchDownloadURL = "https://" + host + ":" + port + "/service/extension/com_zimbra_bulkprovision/bulkdownload?action="+BulkDownloadServlet.ACTION_GETSR;
+        String searchDownloadURL = "https://" + host + ":" + port + "/service/extension/com_zimbra_bulkprovision/search_results_download";
         HttpClient eve = ZimbraHttpConnectionManager.getInternalHttpConnMgr().newHttpClient();
         HttpState state = new HttpState();
         at.encode(state, true, host);
@@ -81,7 +80,7 @@ public class TestSearchResultsDownload extends TestCase {
 
     @Test
     public void testDownloadAllTypes() throws Exception {
-        downloadCSV(new HashSet<ObjectType>(Arrays.asList(ObjectType.values())), 
+        downloadCSV(new HashSet<ObjectType>(Arrays.asList(ObjectType.values())),
                 new HashSet<String>(Arrays.asList(AdminConstants.E_CALENDAR_RESOURCE,
                         AdminConstants.E_ACCOUNT,
                         AdminConstants.E_DL,
@@ -128,8 +127,8 @@ public class TestSearchResultsDownload extends TestCase {
             ZimbraLog.test.error("Unable to get admin SOAP port", e);
         }
         String host =  Provisioning.getInstance().getLocalServer().getName();
-        String searchDownloadURL = "https://" + host + ":" + port + "/service/extension/com_zimbra_bulkprovision/bulkdownload?action="+BulkDownloadServlet.ACTION_GETSR +
-                "&types="+ObjectType.toCSVString(types);
+        String searchDownloadURL = "https://" + host + ":" + port +
+            "/service/extension/com_zimbra_bulkprovision/search_results_download?types=" + ObjectType.toCSVString(types);
         if(query != null) {
             searchDownloadURL += "&q=" + query;
         }
