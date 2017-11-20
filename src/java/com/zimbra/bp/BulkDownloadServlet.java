@@ -53,13 +53,6 @@ public class BulkDownloadServlet extends ExtensionHttpHandler {
                 return;
             }
 
-            // check rights
-            if (isImportResultsDownload && !authToken.isAdmin()) {
-                // If the admin doesn't have enough rights, return error;
-                //     sendError(resp, HttpServletResponse.SC_FORBIDDEN, "Permission denied");
-                // Do we check all items listed in csv to specify target domain(s) of rights?
-            }
-
             if (pFileFormat.equalsIgnoreCase(ZimbraBulkProvisionExt.FILE_FORMAT_BULK_CSV)) {
                 bulkFileName = String.format("%s%s_bulk_%s_%s.csv", LC.zimbra_tmp_directory.value(),
                         File.separator, authToken.getAccountId(), pFileId);
