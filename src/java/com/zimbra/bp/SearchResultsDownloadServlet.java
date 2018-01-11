@@ -41,7 +41,6 @@ public class SearchResultsDownloadServlet extends ExtensionHttpHandler {
             resp.setContentType("application/x-download");
             resp.setHeader("Content-Disposition", "attachment; filename=search_result.csv");
             SearchResults.writeSearchResultOutputStream(resp.getOutputStream(), query, domain, types, authToken);
-
         } catch (Exception e) {
             ZimbraLog.extensions.error(e);
             return;
