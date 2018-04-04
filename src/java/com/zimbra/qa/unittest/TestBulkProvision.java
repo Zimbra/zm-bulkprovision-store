@@ -26,12 +26,12 @@ import org.apache.commons.httpclient.methods.multipart.FilePart;
 import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
 import org.apache.commons.httpclient.methods.multipart.Part;
 import org.apache.commons.httpclient.methods.multipart.StringPart;
+import org.apache.commons.io.IOUtils;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.io.XMLWriter;
 import org.junit.Test;
 
-import com.google.common.io.Closeables;
 import com.zimbra.bp.BulkProvisioningThread;
 import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.common.service.ServiceException;
@@ -223,7 +223,7 @@ public class TestBulkProvision extends TestCase {
                     //ignore
                 }
             }
-            Closeables.closeQuietly(stringWriter);
+            IOUtils.closeQuietly(stringWriter);
         }
     }
 
