@@ -26,7 +26,6 @@ import org.apache.commons.httpclient.methods.multipart.FilePart;
 import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
 import org.apache.commons.httpclient.methods.multipart.Part;
 import org.apache.commons.httpclient.methods.multipart.StringPart;
-import org.apache.commons.io.IOUtils;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.io.XMLWriter;
@@ -179,8 +178,7 @@ public class TestBulkProvision extends TestCase {
 
     public static String generateProvisioningXML() throws Exception {
         XMLWriter xw = null;
-        StringWriter stringWriter = new StringWriter();
-        try {
+        try(StringWriter stringWriter = new StringWriter()) {
             xw = new XMLWriter(stringWriter, org.dom4j.io.OutputFormat.createPrettyPrint());
             Document doc = DocumentHelper.createDocument();
             org.dom4j.Element rootEl = DocumentHelper.createElement(AdminExtConstants.E_ZCSImport);
@@ -223,7 +221,6 @@ public class TestBulkProvision extends TestCase {
                     //ignore
                 }
             }
-            IOUtils.closeQuietly(stringWriter);
         }
     }
 
