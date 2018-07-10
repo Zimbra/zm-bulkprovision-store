@@ -31,7 +31,6 @@ import org.dom4j.DocumentHelper;
 import org.dom4j.io.XMLWriter;
 import org.junit.Test;
 
-import com.google.common.io.Closeables;
 import com.zimbra.bp.BulkProvisioningThread;
 import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.common.service.ServiceException;
@@ -179,8 +178,7 @@ public class TestBulkProvision extends TestCase {
 
     public static String generateProvisioningXML() throws Exception {
         XMLWriter xw = null;
-        StringWriter stringWriter = new StringWriter();
-        try {
+        try(StringWriter stringWriter = new StringWriter()) {
             xw = new XMLWriter(stringWriter, org.dom4j.io.OutputFormat.createPrettyPrint());
             Document doc = DocumentHelper.createDocument();
             org.dom4j.Element rootEl = DocumentHelper.createElement(AdminExtConstants.E_ZCSImport);
@@ -223,7 +221,6 @@ public class TestBulkProvision extends TestCase {
                     //ignore
                 }
             }
-            Closeables.closeQuietly(stringWriter);
         }
     }
 

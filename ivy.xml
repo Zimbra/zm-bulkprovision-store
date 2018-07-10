@@ -8,13 +8,14 @@
   <dependency org="junit" name="junit" rev="4.8.2" />
   <dependency org="javax.servlet" name="javax.servlet-api" rev="3.1.0" />
   <dependency org="dom4j" name="dom4j" rev="1.5.2" />
-  <dependency org="com.google.guava" name="guava" rev="13.0.1" />
+  <dependency org="com.google.guava" name="guava" rev="23.0" />
   <dependency org="org.apache.commons" name="commons-csv" rev="1.2" />
   <dependency org="commons-httpclient" name="commons-httpclient" rev="3.1" />
   <dependency org="zimbra" name="zm-client" rev="latest.integration" />
   <dependency org="zimbra" name="zm-common" rev="latest.integration" />
   <dependency org="zimbra" name="zm-soap" rev="latest.integration" />
   <dependency org="zimbra" name="zm-store" rev="latest.integration" />
+  <dependency org="commons-io" name="commons-io" rev="1.4"/>
  </dependencies>
 </ivy-module>
 
