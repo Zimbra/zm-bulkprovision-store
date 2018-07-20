@@ -5,27 +5,26 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.net.URLConnection;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import junit.framework.TestCase;
-
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpException;
-import org.apache.commons.httpclient.HttpState;
-import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource;
-import org.apache.commons.httpclient.methods.multipart.FilePart;
-import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
-import org.apache.commons.httpclient.methods.multipart.Part;
-import org.apache.commons.httpclient.methods.multipart.StringPart;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpException;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.io.XMLWriter;
@@ -51,6 +50,8 @@ import com.zimbra.soap.admin.type.Attr;
 import com.zimbra.soap.adminext.message.BulkImportAccountsRequest;
 import com.zimbra.soap.adminext.message.BulkImportAccountsResponse;
 import com.zimbra.soap.type.AccountSelector;
+
+import junit.framework.TestCase;
 
 public class TestBulkProvision extends TestCase {
     private static final String USER_PREFIX = TestBulkProvision.class.getSimpleName().toLowerCase() + "_";
@@ -229,10 +230,11 @@ public class TestBulkProvision extends TestCase {
         String bulkDownloadURL = "https://" + host + ":" + port +
             "/service/extension/com_zimbra_bulkprovision/bulkdownload?fileFormat=reportcsv&fileID=" + fileID;
 
-        GetMethod get = new GetMethod(bulkDownloadURL);
-        int statusCode = HttpClientUtil.executeMethod(eve, get);
+        HttpGet get = new HttpGet(bulkDownloadURL);
+        HttpResponse response = HttpClientUtil.executeMethod(eve, get);
+        int statusCode = response.getStatusLine().getStatusCode();
         assertEquals("The GET request should succeed. Getting status code " + statusCode, HttpStatus.SC_OK,statusCode);
-        try (InputStream in = get.getResponseBodyAsStream();
+        try (InputStream in = response.getEntity().getContent();
                 CSVParser parser = new CSVParser(new InputStreamReader(in), CSVFormat.DEFAULT)) {
             List<CSVRecord> records = parser.getRecords();
             assertNotNull("Result set should not be NULL", records);
@@ -261,11 +263,11 @@ public class TestBulkProvision extends TestCase {
     }
 
     public static HttpClient getHttpClient(AuthToken at, String host) throws ServiceException {
-        HttpClient eve = ZimbraHttpConnectionManager.getInternalHttpConnMgr().newHttpClient();
-        HttpState state = new HttpState();
+        HttpClientBuilder eve = ZimbraHttpConnectionManager.getInternalHttpConnMgr().newHttpClient();
+        BasicCookieStore state = new BasicCookieStore();
+        eve.setDefaultCookieStore(state);
         at.encode(state, true, host);
-        eve.setState(state);
-        return eve;
+        return eve.build();
     }
 
     private static String waitForBulkImportFinish(BulkImportAccountsRequest bulkImportRequest, SoapTransport transport)
@@ -300,18 +302,22 @@ public class TestBulkProvision extends TestCase {
     public static String uploadAndGetUploadId(String host, int port, HttpClient eve, String fileName, String content)
     throws ServiceException, HttpException, IOException {
         String uploadURL = "https://" + host + ":" + port + "/service/upload";
-        List<Part> parts = new ArrayList<Part>();
-        parts.add(new StringPart("requestId", "0"));
-        parts.add(createAttachmentPart(fileName, content.getBytes()));
 
         //upload the XML file
-        PostMethod post = new PostMethod(uploadURL);
-        post.setRequestEntity(new MultipartRequestEntity(parts.toArray(new Part[parts.size()]), post.getParams()));
-        int statusCode = HttpClientUtil.executeMethod(eve, post);
+        HttpPost post = new HttpPost(uploadURL);
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+        builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+        builder.addBinaryBody(fileName, content.getBytes());
+        builder.addTextBody("requestId", "0");
+        HttpEntity entity = builder.build();
+        //
+        post.setEntity(entity);
+        HttpResponse response = HttpClientUtil.executeMethod(eve, post);
+        int statusCode  = response.getStatusLine().getStatusCode();
         assertEquals("Should be getting status code 200 (OK) for upload" , HttpStatus.SC_OK, statusCode);
 
         //check that it was parsed
-        String uploadResp = post.getResponseBodyAsString();
+        String uploadResp = EntityUtils.toString(response.getEntity());
         Pattern pattern = Pattern.compile("([a-z0-9\\-]+)(:)([a-z0-9\\-]+)");
         Matcher matcher = pattern.matcher(uploadResp);
         String uploadId = null;
@@ -325,10 +331,10 @@ public class TestBulkProvision extends TestCase {
     /**
      * Creates an <tt>HttpClient FilePart</tt> from the given filename and content.
      */
-    public static FilePart createAttachmentPart(String filename, byte[] content) {
-        FilePart part = new FilePart(filename, new ByteArrayPartSource(filename, content));
+    public static MultipartEntityBuilder createAttachmentPart(String filename, byte[] content) {
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
         String contentType = URLConnection.getFileNameMap().getContentTypeFor(filename);
-        part.setContentType(contentType);
-        return part;
+        builder.addBinaryBody(filename, content, ContentType.create(contentType), filename);
+        return builder;
     }
 }
