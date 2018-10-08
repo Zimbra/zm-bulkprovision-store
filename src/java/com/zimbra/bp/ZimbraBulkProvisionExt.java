@@ -2,11 +2,11 @@
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra Collaboration Suite Server
  * Copyright (C) 2008, 2009, 2010, 2011, 2013, 2014 Zimbra, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software Foundation,
  * version 2 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -18,12 +18,12 @@ package com.zimbra.bp;
 
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.extension.ExtensionDispatcherServlet;
+import com.zimbra.cs.extension.ZimbraExtension;
 import com.zimbra.qa.unittest.TestBulkProvision;
 import com.zimbra.qa.unittest.TestSearchResultsDownload;
 import com.zimbra.qa.unittest.ZimbraSuite;
 import com.zimbra.soap.SoapServlet;
-import com.zimbra.cs.extension.ExtensionDispatcherServlet;
-import com.zimbra.cs.extension.ZimbraExtension;
 
 /**
  * Created by IntelliJ IDEA.
@@ -40,7 +40,7 @@ public class ZimbraBulkProvisionExt implements ZimbraExtension {
     public static final String FILE_FORMAT_ZIMBRA = "zimbra";
     public static final String EXCHANGE_IMAP = "EXCHANGE_IMAP";
     public static final String DEFAULT_INDEX_BATCH_SIZE = "40";
-    
+
     public static final String OP_GET_STATUS = "getStatus";
     public static final String OP_PREVIEW = "preview";
     public static final String OP_PREVIEW_ACTIVE_IMPORTS = "previewActiveImports";
@@ -72,6 +72,7 @@ public class ZimbraBulkProvisionExt implements ZimbraExtension {
             ZimbraLog.test.debug("Unable to load TestSearchResultsDownload unit tests.", e);
         }
         ExtensionDispatcherServlet.register(this, new BulkDownloadServlet());
+        ExtensionDispatcherServlet.register(this, new SearchResultsDownloadServlet());
         //need to add the service calls to the admin soap calls
         SoapServlet.addService("AdminServlet", new ZimbraBulkProvisionService());
     }
