@@ -10,8 +10,9 @@
   <dependency org="dom4j" name="dom4j" rev="1.5.2" />
   <dependency org="com.google.guava" name="guava" rev="23.0" />
   <dependency org="org.apache.commons" name="commons-csv" rev="1.2" />
-  <dependency org="org.apache.httpcomponents" name="httpclient" rev="4.5.2"/>
-  <dependency org="org.apache.httpcomponents" name="httpmime" rev="4.5.5"/>
+  <dependency org="org.apache.httpcomponents" name="httpcore" rev="4.4.11"/>
+  <dependency org="org.apache.httpcomponents" name="httpclient" rev="4.5.8"/>
+  <dependency org="org.apache.httpcomponents" name="httpmime" rev="4.5.8"/>
   <dependency org="zimbra" name="zm-client" rev="latest.integration" />
   <dependency org="zimbra" name="zm-common" rev="latest.integration" />
   <dependency org="zimbra" name="zm-soap" rev="latest.integration" />
