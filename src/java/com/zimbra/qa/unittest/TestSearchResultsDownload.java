@@ -10,15 +10,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import junit.framework.TestCase;
-
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpState;
-import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -49,6 +48,8 @@ import com.zimbra.soap.admin.type.RightModifierInfo;
 import com.zimbra.soap.type.GranteeType;
 import com.zimbra.soap.type.TargetBy;
 import com.zimbra.soap.type.TargetType;
+
+import junit.framework.TestCase;
 
 public class TestSearchResultsDownload extends TestCase {
     private static final String USER_PREFIX = TestSearchResultsDownload.class.getSimpleName().toLowerCase() + "_";
@@ -98,12 +99,12 @@ public class TestSearchResultsDownload extends TestCase {
         }
         String host =  Provisioning.getInstance().getLocalServer().getName();
         String searchDownloadURL = "https://" + host + ":" + port + "/service/extension/com_zimbra_bulkprovision/search_results_download";
-        HttpClient eve = ZimbraHttpConnectionManager.getInternalHttpConnMgr().newHttpClient();
-        HttpState state = new HttpState();
+        HttpClientBuilder eve = ZimbraHttpConnectionManager.getInternalHttpConnMgr().newHttpClient();
+        BasicCookieStore state = new BasicCookieStore();
+        eve.setDefaultCookieStore(state);
         at.encode(state, true, host);
-        eve.setState(state);
-        GetMethod get = new GetMethod(searchDownloadURL);
-        int statusCode = HttpClientUtil.executeMethod(eve, get);
+        HttpGet get = new HttpGet(searchDownloadURL);
+        int statusCode = HttpClientUtil.executeMethod(eve.build(), get).getStatusLine().getStatusCode();
         assertEquals("Should be getting status code 400. Getting status code " + statusCode, HttpStatus.SC_BAD_REQUEST,statusCode);
     }
 
@@ -218,18 +219,19 @@ public class TestSearchResultsDownload extends TestCase {
         if(query != null) {
             searchDownloadURL += "&q=" + query;
         }
-        HttpClient eve = ZimbraHttpConnectionManager.getInternalHttpConnMgr().newHttpClient();
-        HttpState state = new HttpState();
+        HttpClientBuilder eve = ZimbraHttpConnectionManager.getInternalHttpConnMgr().newHttpClient();
+        BasicCookieStore state = new BasicCookieStore();
+        eve.setDefaultCookieStore(state);
         at.encode(state, true, host);
-        eve.setState(state);
-        GetMethod get = new GetMethod(searchDownloadURL);
-        int statusCode = HttpClientUtil.executeMethod(eve, get);
+        HttpGet get = new HttpGet(searchDownloadURL);
+        HttpResponse response = HttpClientUtil.executeMethod(eve.build(), get);
+        int statusCode = response.getStatusLine().getStatusCode();
         assertEquals("The GET request should succeed. Getting status code " + statusCode, HttpStatus.SC_OK,statusCode);
         CSVParser parser = null;
         InputStream in = null;
         int recordCount;
         try {
-            in = get.getResponseBodyAsStream();
+            in = response.getEntity().getContent();
             parser = new CSVParser(new InputStreamReader(in), CSVFormat.DEFAULT);
             List<CSVRecord> records = parser.getRecords();
             recordCount = records.size();
