@@ -55,17 +55,21 @@ import com.zimbra.cs.service.admin.AdminAccessControl;
  * User: ccao
  * Date: Feb 17, 2009
  * Time: 5:06:46 PM
+ * *change 2/10/2021 - jholder: ZBUG-143 add A_description and A_zimbraLastLogonTimestamp to account attributes to be searched.
  * To change this template use File | Settings | File Templates.
  */
 public class SearchResults {
-    public static String [] ACCOUNT_ATTRS = {ZAttrProvisioning.A_displayName, 
-        ZAttrProvisioning.A_zimbraAccountStatus, ZAttrProvisioning.A_zimbraCOSId};
+    public static String [] ACCOUNT_ATTRS = {ZAttrProvisioning.A_displayName,
+            ZAttrProvisioning.A_zimbraAccountStatus,
+            ZAttrProvisioning.A_zimbraCOSId,
+            ZAttrProvisioning.A_description,
+            ZAttrProvisioning.A_zimbraLastLogonTimestamp};
     private static Set<String> ACCOUNT_ATTRS_SET = new HashSet<String>(Arrays.asList(ACCOUNT_ATTRS));
     private static String DATE_PATTERN = "yyyy.MM.dd, hh:mm:ss z";
 
     /**
      * The CSV file format will be
-     * name, zimbraId, type, [displayName, zimbraAccountStatus, zimbraCOSId, zimbraLastLoginTimestamp]
+     * name, zimbraId, type, [displayName, zimbraAccountStatus, zimbraCOSId, zimbraLastLoginTimestamp], human readable timestamp
      * @param out
      * @param query
      * @param domain
@@ -98,15 +102,20 @@ public class SearchResults {
                     line.add(AdminConstants.E_COS);
                 }
 
-                for (int j = 0; j < ACCOUNT_ATTRS.length; j++) {
-                    String val = entry.getAttr(ACCOUNT_ATTRS[j]);
-                    line.add(val);
+                for (String accountAttr : ACCOUNT_ATTRS) {
+                    if (!accountAttr.equals(ZAttrProvisioning.A_zimbraLastLogonTimestamp)) {
+                        String val = entry.getAttr(accountAttr);
+                        line.add(val);
+                    }else{
+                        String lastLogon = entry.getAttr(ZAttrProvisioning.A_zimbraLastLogonTimestamp);
+                        if (lastLogon != null) {
+                            Date date = LdapDateUtil.parseGeneralizedTime(lastLogon);
+                            line.add(formatter.format(date));
+                        }
+                    }
                 }
-                String lastLogon = entry.getAttr(ZAttrProvisioning.A_zimbraLastLogonTimestamp);
-                if (lastLogon != null) {
-                    Date date = LdapDateUtil.parseGeneralizedTime(lastLogon);
-                    line.add(formatter.format(date));
-                }
+
+
                 printer.printRecord(line);
             }
             printer.close();
