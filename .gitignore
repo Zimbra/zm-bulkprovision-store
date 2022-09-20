@@ -1,5 +1,9 @@
 build/
+.idea
 .classpath
 .project
 .settings/
 /bin/
+src/java/META-INF*
+out
+zm-bulkprovision-store.iml
